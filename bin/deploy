@@ -1,0 +1,40 @@
+#!/bin/bash
+
+# Deploys a built docker image, by uploading it to the container registry and then nudging the deployment's tag ref
+# Requires that doctl registry and kubectl are both authenticated
+
+APP=heyfam-front
+
+IMAGE=registry.sminn.ee/tangerine/$APP
+TAGPREFIX=""
+
+# Name of the deployment (assumes the default namespace)
+DEPLOYMENT=$APP
+
+# Named container in that deployment
+CONTAINER=$APP
+
+if [ "$1" = "" ]; then
+    echo "Usage: $0 (tag)"
+    exit 1
+fi
+
+if [ "$DOCKER_PASSWORD" = "" ]; then
+  echo "Set DOCKER_PASSWORD env var to the basicauth password for reigstry.sminn.ee"
+  exit 2
+fi
+
+if [ "$LINODE_DEPLOY_KEY" = "" ]; then
+  echo "Set LINODE_DEPLOY_KEY env var to the OpenSSL private key Kubernetes access"
+  exit 2
+fi
+
+IMAGE_FULL="$IMAGE:$TAGPREFIX$1"
+
+docker login https://registry.sminn.ee -u registry -p  $DOCKER_PASSWORD
+docker push $IMAGE_FULL
+
+echo "$LINODE_DEPLOY_KEY" > bin/github-deploy.key
+KUBECONFIG=bin/kubeconfig.yaml kubectl set image deployment/$DEPLOYMENT "$CONTAINER=$IMAGE_FULL" --record
+KUBECONFIG=bin/kubeconfig.yaml kubectl rollout status deployment/$DEPLOYMENT
+rm bin/github-deploy.key
