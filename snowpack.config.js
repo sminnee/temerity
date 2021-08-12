@@ -7,6 +7,7 @@ module.exports = {
   plugins: [
     ["@snowpack/plugin-webpack"],
     ["@jihchi/plugin-rescript"],
+    ["snowpack-plugin-glslify"],
   ],
   mount: {
     "public": "/",
