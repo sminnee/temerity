@@ -45,20 +45,27 @@ let app = context => {
         Camera.perspectiveCamera(45., 1.33, 0.05, 10.)->Option.getWithDefault(Matrix4.identity)
       let view = Camera.lookAtTransform(Vec3.make(-3., 1., -5.), Vec3.zero, Vec3.unitY)
 
-      // Model transformation
-      let modelTransform = Transform.rotateY(50.)//->Matrix4.mul(Transform.translate(0., 0., 5.))
+      let ang = ref(0.)
+      let ang2 = ref(0.)
 
-      let transform = projection->Matrix4.mul(view)->Matrix4.mul(modelTransform)
+      animate(_ => {
+        // Model transformation
+        let modelTransform = Matrix4.mul(Transform.rotateZ(Js.Math.sin(ang2.contents)*.30.), Transform.rotateY(ang.contents))
+        let transform = projection->Matrix4.mul(view)->Matrix4.mul(modelTransform)
 
-      // Render each object
-      Array.map(
-        objects,
-        ((object, length)) => render({
-          mesh: object,
-          meshLength: length,
-          transform: transform
-        })
-      )
+        ang := ang.contents +. 5.
+        ang2 := ang2.contents +. 0.05
+
+        // Render each object
+        Array.forEach(
+          objects,
+          ((object, length)) => render({
+            mesh: object,
+            meshLength: length,
+            transform: transform
+          })
+        )
+      })
   })
 }
 

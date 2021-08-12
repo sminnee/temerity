@@ -73,6 +73,15 @@ let makeRenderer = (context, program, ~uniforms, ~attributes, ~render) => {
   }
 }
 
+let animate = handler => {
+  let rec go = now => {
+    Browser.requestAnimationFrame(go)->ignore
+    handler(now)
+  }
+
+  go(Js.Date.now())
+}
+
 
 // let render = (context, transform, refs) => {
 //   // Set the transform for all the triangle vertices
