@@ -473,7 +473,16 @@ external uniformMatrix3fv: (t, uniformRef, bool, array<float>) => unit = "unifor
 @send
 external uniformMatrix4fv: (t, uniformRef, bool, array<float>) => unit = "uniformMatrix4fv"
 
-// vertexAttrib[1234][fi]v?
+
+@send external vertexAttrib1f: (t, attribRef, float) => unit = "vertexAttrib1f"
+@send external vertexAttrib2f: (t, attribRef, float, float) => unit = "vertexAttrib2f"
+@send external vertexAttrib3f: (t, attribRef, float, float, float) => unit = "vertexAttrib3f"
+@send external vertexAttrib4f: (t, attribRef, float, float, float, float) => unit = "vertexAttrib4f"
+
+@send external vertexAttrib1fv: (t, attribRef, array<float>) => unit = "vertexAttrib1fv"
+@send external vertexAttrib2fv: (t, attribRef, array<float>) => unit = "vertexAttrib2fv"
+@send external vertexAttrib3fv: (t, attribRef, array<float>) => unit = "vertexAttrib3fv"
+@send external vertexAttrib4fv: (t, attribRef, array<float>) => unit = "uniform4fv"
 
 // vertexAttribPointer
 @send

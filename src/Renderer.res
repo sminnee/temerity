@@ -2,6 +2,13 @@
 
 open Belt
 
+type meshData = {
+  positions: WebGL.buffer,
+  normals: WebGL.buffer,
+  length: int,
+}
+
+
 @ocaml.doc("Update the size of the canvas to match its DOM element")
 let resizeCanvas = canvas => {
   Browser.getClientWidth(canvas)->Browser.setWidth(canvas, _)
@@ -45,12 +52,12 @@ let loadProgram = (context, vertexSrc, fragmentSrc) => {
 @ocaml.doc("Bind the content of a buffer to an attribute for a render operation")
 let bufferToAttrib = (context, buffer, attrib, itemLength) => {
   // Activate the model's vertex Buffer Object
+  WebGL.enableVertexAttribArray(context, attrib)
   WebGL.bindBuffer(context, #ArrayBuffer, buffer)
   WebGL.vertexAttribPointer(context, attrib, itemLength, #Float, false, 0, 0)
-  WebGL.enableVertexAttribArray(context, attrib)
 }
 
-type renderInput = {
+type cameraInput = {
   mesh: WebGL.buffer,
   meshLength: int,
   transform: array<float>,
@@ -66,10 +73,9 @@ let makeRenderer = (context, program, ~uniforms, ~attributes, ~render) => {
     handler(context, WebGL.getAttribLocation(context, program, name))
   }))
 
-  (input: renderInput) => {
-    Js.log("render")
-    Array.forEach(handlers, handler => handler(input))
-    render(context, input)
+  (mesh: meshData, camera) => {
+    Array.forEach(handlers, handler => handler(mesh, camera))
+    render(context, mesh, camera)
   }
 }
 
@@ -81,19 +87,3 @@ let animate = handler => {
 
   go(Js.Date.now())
 }
-
-
-// let render = (context, transform, refs) => {
-//   // Set the transform for all the triangle vertices
-//   WebGL.uniformMatrix4fv(context, refs.transform, false, transform)
-
-//   // Set the color for all of the triangle faces
-//   let model_color = [1., 0., 0., 1.]
-//   WebGL.uniform4fv(context, refs.color, model_color)
-
-//   bufferToAttrib(context, refs.mesh, refs.vertex, 3)
-
-//   // Draw all of the triangles
-//   let number_triangles = 4
-//   WebGL.drawArrays(context, #Triangles, 0, number_triangles * 3)
-// }

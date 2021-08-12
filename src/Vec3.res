@@ -2,6 +2,8 @@ type t = {x: float, y: float, z: float}
 
 let make = (x, y, z) => {x: x, y: y, z: z}
 
+let fromTuple = ((x, y, z)) => {x: x, y: y, z: z}
+
 let zero = make(0., 0., 0.)
 let unitX = make(1., 0., 0.)
 let unitY = make(0., 1., 0.)
