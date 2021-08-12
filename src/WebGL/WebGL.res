@@ -292,7 +292,12 @@ external bufferSubData: (
 
 @send external deleteBuffer: (t, buffer) => unit = "deleteBuffer"
 
-@send external getBufferParameterSize: (t, @int [@as(34962) #ArrayBuffer | #ElementArrayBuffer],   @as(34660) _) => int = "getBufferParameter"
+@send
+external getBufferParameterSize: (
+  t,
+  @int [@as(34962) #ArrayBuffer | #ElementArrayBuffer],
+  @as(34660) _,
+) => int = "getBufferParameter"
 
 @send
 external getBufferParameterUsage: (

@@ -4,6 +4,7 @@ module FloatBuffer = {
   @ocaml.doc("A fixed-size buffer that can be accumulated")
   type t = {
     data: array<float>,
+    length: int,
     next: ref<int>,
   }
 
@@ -12,6 +13,7 @@ module FloatBuffer = {
   @ocaml.doc("Make a float buffer of the given number of items")
   let make = count => {
     data: makeArray(count),
+    length: count,
     next: ref(0),
   }
 
@@ -36,8 +38,6 @@ let make = (vertices, triangles) => {
     | _ => failwith("Triangle needs exactly 3 vertex refs")
     }
   })
-
-  Js.log2("buffer", buffer.data)
 
   buffer
 }
