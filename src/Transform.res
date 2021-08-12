@@ -1,32 +1,52 @@
 // Matrices representing transformation operations
 
+// Mutable forms
+
+let translateInto = (dest, x, y, z) =>
+  Matrix4.load(dest, 1., 0., 0., 0., 0., 1., 0., 0., 0., 0., 1., 0., x, y, z, 1.)
+
+let scaleInto = (dest, x, y, z) =>
+  Matrix4.load(dest, x, 0., 0., 0., 0., y, 0., 0., 0., 0., z, 0., 0., 0., 0., 1.)
+
+let rotateXInto = (dest, angle) => {
+  let radians = Matrix4.toRadians(angle)
+  let s = Js.Math.sin(radians)
+  let c = Js.Math.cos(radians)
+
+  Matrix4.load(dest, 1., 0., 0., 0., 0., c, s, 0., 0., -.s, c, 0., 0., 0., 0., 1.)
+}
+
+let rotateYInto = (dest, angle) => {
+  let radians = Matrix4.toRadians(angle)
+  let s = Js.Math.sin(radians)
+  let c = Js.Math.cos(radians)
+  Matrix4.load(dest, c, 0., -.s, 0., 0., 1., 0., 0., s, 0., c, 0., 0., 0., 0., 1.)
+}
+
+let rotateZInto = (dest, angle) => {
+  let radians = Matrix4.toRadians(angle)
+  let s = Js.Math.sin(radians)
+  let c = Js.Math.cos(radians)
+  Matrix4.load(dest, c, s, 0., 0., -.s, c, 0., 0., 0., 0., 1., 0., 0., 0., 0., 1.)
+}
+
+// Immutable forms
+
 let translate = (x, y, z) =>
-  Matrix4.fromArray([1., 0., 0., 0., 0., 1., 0., 0., 0., 0., 1., 0., x, y, z, 1.])
+  translateInto(Matrix4.empty(), x, y, z)
 
 let scale = (x, y, z) =>
-  Matrix4.fromArray([x, 0., 0., 0., 0., y, 0., 0., 0., 0., z, 0., 0., 0., 0., 1.])
+  scaleInto(Matrix4.empty(), x, y, z)
 
-let rotateX = angle => {
-  let radians = Matrix4.toRadians(angle)
-  let s = Js.Math.sin(radians)
-  let c = Js.Math.cos(radians)
+let rotateX = (angle) =>
+  rotateXInto(Matrix4.empty(), angle)
 
-  Matrix4.fromArray([1., 0., 0., 0., 0., c, s, 0., 0., -.s, c, 0., 0., 0., 0., 1.])
-}
+let rotateY = (angle) =>
+  rotateYInto(Matrix4.empty(), angle)
 
-let rotateY = angle => {
-  let radians = Matrix4.toRadians(angle)
-  let s = Js.Math.sin(radians)
-  let c = Js.Math.cos(radians)
-  Matrix4.fromArray([c, 0., -.s, 0., 0., 1., 0., 0., s, 0., c, 0., 0., 0., 0., 1.])
-}
+let rotateZ = (angle) =>
+  rotateZInto(Matrix4.empty(), angle)
 
-let rotateZ = angle => {
-  let radians = Matrix4.toRadians(angle)
-  let s = Js.Math.sin(radians)
-  let c = Js.Math.cos(radians)
-  Matrix4.fromArray([c, s, 0., 0., -.s, c, 0., 0., 0., 0., 1., 0., 0., 0., 0., 1.])
-}
 
 // let rotate = (angle, )
 

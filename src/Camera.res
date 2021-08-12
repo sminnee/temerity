@@ -66,5 +66,5 @@ let lookAtTransform = (eye, center, up) => {
   let ty = -.dot(v, eye)
   let tz = -.dot(n, eye)
 
-  Matrix4.fromArray([u.x, v.x, n.x, 0., u.y, v.y, n.y, 0., u.z, v.z, n.z, 0., tx, ty, tz, 1.])
+  Matrix4.make(u.x, v.x, n.x, 0., u.y, v.y, n.y, 0., u.z, v.z, n.z, 0., tx, ty, tz, 1.)
 }

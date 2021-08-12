@@ -67,14 +67,22 @@ let app = context => {
     let ang = ref(0.)
     let ang2 = ref(0.)
 
+    let rotY = Matrix4.empty()
+    let rotZ = Matrix4.empty()
+    let modelTransform = Matrix4.empty()
+    let vmTransform = Matrix4.empty()
+    let pvmTransform = Matrix4.empty()
+
     animate(_ => {
+
       // Model transformation
-      let modelTransform = Matrix4.mul(
-        Transform.rotateZ(Js.Math.sin(ang2.contents) *. 30.),
-        Transform.rotateY(ang.contents),
-      )
-      let pvmTransform = projection->Matrix4.mul(view)->Matrix4.mul(modelTransform)
-      let vmTransform = Matrix4.mul(view, modelTransform)
+      Matrix4.mulInto(
+        modelTransform,
+        Transform.rotateZInto(rotZ, Js.Math.sin(ang2.contents) *. 30.),
+        Transform.rotateYInto(rotY, ang.contents)
+      )->ignore
+      Matrix4.mulInto(vmTransform, view, modelTransform)->ignore
+      Matrix4.mulInto(pvmTransform, projection, vmTransform)->ignore
 
       ang := ang.contents +. 5.
       ang2 := ang2.contents +. 0.05
