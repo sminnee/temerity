@@ -498,7 +498,7 @@ external vertexAttribPointer: (
 // Drawing buffers
 
 // To do: link bitwise OR mask
-@send external clear: t => unit = "clear"
+@send external clear: (t, @as(0) _) => unit = "clear"
 
 @send
 external drawArrays: (

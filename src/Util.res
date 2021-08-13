@@ -302,31 +302,3 @@ let logTime = (label, operation: unit => 'a): 'a => {
   Js.log4("Execution time", label, (t2 -. t1) /. 1000., "seconds")
   result
 }
-
-@ocaml.doc("Generate an onClick action to dispatch an action on a click with no modifier keys")
-let regularClick = (fn: unit => unit, evt) => {
-  // Allow default browser behaviour if any modified keys are held down
-  if (
-    !(
-      ReactEvent.Mouse.shiftKey(evt) ||
-      ReactEvent.Mouse.metaKey(evt) ||
-      ReactEvent.Mouse.ctrlKey(evt) ||
-      ReactEvent.Mouse.ctrlKey(evt)
-    )
-  ) {
-    ReactEvent.Mouse.preventDefault(evt)
-    ReactEvent.Mouse.stopPropagation(evt)
-    fn()
-  }
-}
-
-@ocaml.doc("Generate an onClick action to dispatch an action and prevent default/bubbling")
-let buttonClick = (fn: unit => unit, evt) => {
-  // Allow default browser behaviour if any modified keys are held down
-  ReactEvent.Mouse.preventDefault(evt)
-  ReactEvent.Mouse.stopPropagation(evt)
-  fn()
-}
-
-@ocaml.doc("Evaluate the thunk if cond is true, otherwise return React.null")
-let showSectionIf = (cond, thunk) => cond ? thunk() : React.null

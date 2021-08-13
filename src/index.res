@@ -9,24 +9,27 @@ let vertexShaderSrc = %raw(`_vertexShaderSrc`)
 
 //@module external styles: {..} = "./Ui/Global.css"
 
-let mesh = Mesh.make(
-  [(0.0, -0.25, -0.50), (0.0, 0.25, 0.00), (0.5, -0.25, 0.25), (-0.5, -0.25, 0.25)],
-  [(2, 1, 3), (3, 1, 0), (0, 1, 2), (0, 2, 3)],
-)
+// let mesh = Mesh.make(
+//   [(0.0, -0.25, -0.50), (0.0, 0.25, 0.00), (0.5, -0.25, 0.25), (-0.5, -0.25, 0.25)],
+//   [(2, 1, 3), (3, 1, 0), (0, 1, 2), (0, 2, 3)],
+// )
 
 type renderData = {
   vmTransform: array<float>,
   pvmTransform: array<float>,
   viewTransform: array<float>,
-  lightPos: Vec3.t
+  lightPos: Vec3.t,
 }
 
 // Build a renderer to suit the GLSL program
 let myRenderer = Renderer.makeRenderer(
   ~uniforms=[
-    ("u_Light_position", (context, ref, _, {lightPos}) => {
-      WebGL.uniform3f(context, ref, lightPos.x, lightPos.y, lightPos.z)
-    }),
+    (
+      "u_Light_position",
+      (context, ref, _, {lightPos}) => {
+        WebGL.uniform3f(context, ref, lightPos.x, lightPos.y, lightPos.z)
+      },
+    ),
     (
       "u_PVM_transform",
       (context, ref, _, {pvmTransform}) =>
@@ -54,11 +57,12 @@ let myRenderer = Renderer.makeRenderer(
   },
 )
 
-let app = context => {
+let app = (context, mesh) => {
   open Renderer
   loadProgram(context, vertexShaderSrc, fragmentShaderSrc)->Option.map(program => {
     WebGL.useProgram(context, program)
     WebGL.enable(context, #DepthTest)
+    WebGL.clearColor(context, 0.,0.,0.,1.)
 
     // Set up the renderer and the objects
     let render = myRenderer(context, program)
@@ -68,10 +72,10 @@ let app = context => {
 
     let scene =
       meshes[0]->Option.mapWithDefault([], mesh =>
-        Array.range(0, 10000)->Array.map(_ =>
+        Array.range(0, 1000)->Array.map(_ =>
           Scene.makeObject(
             mesh,
-            ~pos=Vec3.make(randRange(-40.,40.), -10., randRange(10.,200.)),
+            ~pos=Vec3.make(randRange(-40., 40.), 0., randRange(-100., 100.)),
             ~color=Vec3.make(1., 0., 0.),
           )
         )
@@ -79,8 +83,8 @@ let app = context => {
 
     // Camera transformations
     let projection =
-      Camera.perspectiveCamera(45., 1.33, 0.1, 200.)->Option.getWithDefault(Matrix4.identity)
-    let view = Camera.lookAtTransform(Vec3.make(0., 2., -7.), Vec3.zero, Vec3.unitY)
+      Camera.perspectiveCamera(45., 1.33, 0.1, 1000.)->Option.getWithDefault(Matrix4.identity)
+    let view = Camera.lookAtTransform(Vec3.make(0., 25., -100.), Vec3.zero, Vec3.unitY)
 
     let ang = ref(0.)
     let ang2 = ref(0.)
@@ -91,24 +95,36 @@ let app = context => {
     let modelTransform = Matrix4.empty()
     let vmTransform = Matrix4.empty()
     let pvmTransform = Matrix4.empty()
+    let modelScale = Transform.scale(2.,2., 2.)
 
-    let light = Vec3.make(0., 10., -20.)
-    let vmLight = Matrix4.mulVec3(view, light)
-    Js.log2("vmLight", vmLight)
+    let light = Vec3.make(0., 50., 0.)
+    let lightMarker = Vec3.make(0., 30., 0.)
+    let lightTransform = Matrix4.empty()
+
+    let vmLight = Vec3.empty()
 
     animate(_ => {
       // Animate
-      ang := ang.contents +. 5.
+      ang := ang.contents +. 1.
       ang2 := ang2.contents +. 0.05
+
+      // Light rotation
+      Transform.rotateZInto(lightTransform, ang2.contents)->ignore
+      Matrix4.mulVec3Into(vmLight, lightTransform, light)->ignore
+      Matrix4.mulVec3Into(vmLight, view, vmLight)->ignore
 
       // Combined rotation
       Transform.rotateZInto(rotZ, Js.Math.sin(ang2.contents) *. 30.)->ignore
       Transform.rotateYInto(rotY, ang.contents)->ignore
-      Matrix4.mulInto(rotBoth, rotZ, rotY)->ignore
+      Matrix4.mul3Into(rotBoth, modelScale, rotZ, rotY)->ignore
 
       // Render each object
-      Array.forEach(scene, item => {
+      Array.forEachWithIndex(scene, (idx, item) => {
+        if idx == 0 {
+          Matrix4.mulVec3Into(item.pos, lightTransform, lightMarker)->ignore
+        }
         Scene.loadObjectTransform(modelTransform, item)->ignore
+
         Matrix4.mulInto(modelTransform, modelTransform, rotBoth)->ignore
 
         // Transform to camera space
@@ -121,7 +137,7 @@ let app = context => {
             pvmTransform: pvmTransform,
             vmTransform: vmTransform,
             viewTransform: view,
-            lightPos: vmLight
+            lightPos: vmLight,
           },
         )
       })
@@ -129,4 +145,13 @@ let app = context => {
   })
 }
 
-Browser.getElementById("canvas")->Option.flatMap(Renderer.makeContext)->Option.map(app)->ignore
+Loader_Obj.load("obj/famling1-talk.vox.obj")
+|> Js.Promise.then_((obj: Loader_Obj.t) => {
+  let mesh = Mesh.make(obj.vertices, obj.faces)
+  Browser.getElementById("canvas")
+  ->Option.flatMap(Renderer.makeContext)
+  ->Option.map(app(_, mesh))
+  ->ignore
+  Js.Promise.resolve()
+})
+|> ignore

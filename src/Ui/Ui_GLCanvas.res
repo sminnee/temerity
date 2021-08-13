@@ -1,9 +1,9 @@
 //open Util
 
-@ocaml.doc("Canvas tag with a WebGL context") @react.component
-let make = () => {
-  let setCanvasRef = _ => {
-    ()
+// @ocaml.doc("Canvas tag with a WebGL context") @react.component
+// let make = () => {
+//   let setCanvasRef = _ => {
+//     ()
     // switch canvas
     // ->Js.Nullable.toOption
     // ->Option.flatMap(canvas => {
@@ -34,9 +34,9 @@ let make = () => {
     //   })
     //   ->ignore
     // }
-  }
+//   }
 
-  <canvas ref={ReactDOM.Ref.callbackDomRef(setCanvasRef)}>
-    {React.string("Canvas not supported")}
-  </canvas>
-}
+//   <canvas ref={ReactDOM.Ref.callbackDomRef(setCanvasRef)}>
+//     {React.string("Canvas not supported")}
+//   </canvas>
+// }
