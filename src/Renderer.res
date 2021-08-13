@@ -8,7 +8,6 @@ type meshData = {
   length: int,
 }
 
-
 @ocaml.doc("Update the size of the canvas to match its DOM element")
 let resizeCanvas = canvas => {
   Browser.getClientWidth(canvas)->Browser.setWidth(canvas, _)
@@ -66,12 +65,14 @@ type cameraInput = {
 @ocaml.doc("Build a renderer, initialising value references & returning a render function")
 let makeRenderer = (context, program, ~uniforms, ~attributes, ~render) => {
   Js.log("makeRenderer")
-  let handlers = Array.concat( Array.map(uniforms, ((name, handler)) => {
-    handler(context, WebGL.getUniformLocation(context, program, name))
-  }),
-   Array.map(attributes, ((name, handler)) => {
-    handler(context, WebGL.getAttribLocation(context, program, name))
-  }))
+  let handlers = Array.concat(
+    Array.map(uniforms, ((name, handler)) => {
+      handler(context, WebGL.getUniformLocation(context, program, name))
+    }),
+    Array.map(attributes, ((name, handler)) => {
+      handler(context, WebGL.getAttribLocation(context, program, name))
+    }),
+  )
 
   (mesh: meshData, camera) => {
     Array.forEach(handlers, handler => handler(mesh, camera))
@@ -79,11 +80,25 @@ let makeRenderer = (context, program, ~uniforms, ~attributes, ~render) => {
   }
 }
 
+type animData = {
+  mutable lastLog: float,
+  mutable frames: int,
+}
+
 let animate = handler => {
+  let animData = {frames: 0, lastLog: 0.}
+
   let rec go = now => {
+    animData.frames = animData.frames + 1
+    if (now -. animData.lastLog > 10000.) {
+      Js.log2("Frame-rate", animData.frames/10)
+      animData.frames = 0
+      animData.lastLog = now
+    }
+
     Browser.requestAnimationFrame(go)->ignore
     handler(now)
   }
 
-  go(Js.Date.now())
+  go(0.)
 }

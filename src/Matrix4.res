@@ -87,27 +87,49 @@ let el33 = (a: t) => get(a, 15)
 
 @ocaml.doc("Multiply 2 matrices")
 let mulInto = (dst, a, b) => {
-  set(dst, 0, el00(a) *. el00(b) +. el10(a) *. el01(b) +. el20(a) *. el02(b) +. el30(a) *. el03(b))
-  set(dst, 1, el01(a) *. el00(b) +. el11(a) *. el01(b) +. el21(a) *. el02(b) +. el31(a) *. el03(b))
-  set(dst, 2, el02(a) *. el00(b) +. el12(a) *. el01(b) +. el22(a) *. el02(b) +. el32(a) *. el03(b))
-  set(dst, 3, el03(a) *. el00(b) +. el13(a) *. el01(b) +. el23(a) *. el02(b) +. el33(a) *. el03(b))
-  set(dst, 4, el00(a) *. el10(b) +. el10(a) *. el11(b) +. el20(a) *. el12(b) +. el30(a) *. el13(b))
-  set(dst, 5, el01(a) *. el10(b) +. el11(a) *. el11(b) +. el21(a) *. el12(b) +. el31(a) *. el13(b))
-  set(dst, 6, el02(a) *. el10(b) +. el12(a) *. el11(b) +. el22(a) *. el12(b) +. el32(a) *. el13(b))
-  set(dst, 7, el03(a) *. el10(b) +. el13(a) *. el11(b) +. el23(a) *. el12(b) +. el33(a) *. el13(b))
-  set(dst, 8, el00(a) *. el20(b) +. el10(a) *. el21(b) +. el20(a) *. el22(b) +. el30(a) *. el23(b))
-  set(dst, 9, el01(a) *. el20(b) +. el11(a) *. el21(b) +. el21(a) *. el22(b) +. el31(a) *. el23(b))
-  set(dst, 10, el02(a) *. el20(b) +. el12(a) *. el21(b) +. el22(a) *. el22(b) +. el32(a) *. el23(b))
-  set(dst, 11, el03(a) *. el20(b) +. el13(a) *. el21(b) +. el23(a) *. el22(b) +. el33(a) *. el23(b))
-  set(dst, 12, el00(a) *. el30(b) +. el10(a) *. el31(b) +. el20(a) *. el32(b) +. el30(a) *. el33(b))
-  set(dst, 13, el01(a) *. el30(b) +. el11(a) *. el31(b) +. el21(a) *. el32(b) +. el31(a) *. el33(b))
-  set(dst, 14, el02(a) *. el30(b) +. el12(a) *. el31(b) +. el22(a) *. el32(b) +. el32(a) *. el33(b))
-  set(dst, 15, el03(a) *. el30(b) +. el13(a) *. el31(b) +. el23(a) *. el32(b) +. el33(a) *. el33(b))
-  dst
+  // Using load allows dst to be the same as a or b
+  load(
+    dst,
+    el00(a) *. el00(b) +. el10(a) *. el01(b) +. el20(a) *. el02(b) +. el30(a) *. el03(b),
+    el01(a) *. el00(b) +. el11(a) *. el01(b) +. el21(a) *. el02(b) +. el31(a) *. el03(b),
+    el02(a) *. el00(b) +. el12(a) *. el01(b) +. el22(a) *. el02(b) +. el32(a) *. el03(b),
+    el03(a) *. el00(b) +. el13(a) *. el01(b) +. el23(a) *. el02(b) +. el33(a) *. el03(b),
+    el00(a) *. el10(b) +. el10(a) *. el11(b) +. el20(a) *. el12(b) +. el30(a) *. el13(b),
+    el01(a) *. el10(b) +. el11(a) *. el11(b) +. el21(a) *. el12(b) +. el31(a) *. el13(b),
+    el02(a) *. el10(b) +. el12(a) *. el11(b) +. el22(a) *. el12(b) +. el32(a) *. el13(b),
+    el03(a) *. el10(b) +. el13(a) *. el11(b) +. el23(a) *. el12(b) +. el33(a) *. el13(b),
+    el00(a) *. el20(b) +. el10(a) *. el21(b) +. el20(a) *. el22(b) +. el30(a) *. el23(b),
+    el01(a) *. el20(b) +. el11(a) *. el21(b) +. el21(a) *. el22(b) +. el31(a) *. el23(b),
+    el02(a) *. el20(b) +. el12(a) *. el21(b) +. el22(a) *. el22(b) +. el32(a) *. el23(b),
+    el03(a) *. el20(b) +. el13(a) *. el21(b) +. el23(a) *. el22(b) +. el33(a) *. el23(b),
+    el00(a) *. el30(b) +. el10(a) *. el31(b) +. el20(a) *. el32(b) +. el30(a) *. el33(b),
+    el01(a) *. el30(b) +. el11(a) *. el31(b) +. el21(a) *. el32(b) +. el31(a) *. el33(b),
+    el02(a) *. el30(b) +. el12(a) *. el31(b) +. el22(a) *. el32(b) +. el32(a) *. el33(b),
+    el03(a) *. el30(b) +. el13(a) *. el31(b) +. el23(a) *. el32(b) +. el33(a) *. el33(b),
+  )
+}
+
+let mul3Into = (dst, a, b, c) => {
+  mulInto(dst, a, b)->ignore
+  mulInto(dst, dst, c)
+}
+
+let mul4Into = (dst, a, b, c, d) => {
+  mulInto(dst, a, b)->ignore
+  mulInto(dst, dst, c)->ignore
+  mulInto(dst, dst, d)
 }
 
 let mul = (a, b) => {
   mulInto(empty(), a, b)
+}
+
+let mul3 = (a, b, c) => {
+  mul3Into(empty(), a, b, c)
+}
+
+let mul4 = (a, b, c, d) => {
+  mul4Into(empty(), a, b, c, d)
 }
 
 @ocaml.doc("Transpose a matrix")
@@ -135,3 +157,15 @@ let transpose = a => {
 let toRadians = angleInDegrees => angleInDegrees *. 0.017453292519943295
 
 let toDegrees = angleInRadians => angleInRadians *. 57.29577951308232 // 180 / Math.PI
+
+/* * -----------------------------------------------------------------
+ * r = M * v (M is a 4x4 matrix, v is a 3-component vector)
+ */
+let mulVec3Into = (dest, mat: t, vec: Vec3.t) =>
+  Vec3.load(dest,
+    el00(mat) *. vec.x +. el10(mat) *. vec.y +. el20(mat) +. vec.z,
+    el01(mat) *. vec.x +. el11(mat) *. vec.y +. el21(mat) +. vec.z,
+    el02(mat) *. vec.x +. el12(mat) *. vec.y +. el22(mat) +. vec.z,
+  )
+
+let mulVec3 = (mat, vec) => mulVec3Into(Vec3.empty(), mat, vec)

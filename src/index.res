@@ -14,15 +14,23 @@ let mesh = Mesh.make(
   [(2, 1, 3), (3, 1, 0), (0, 1, 2), (0, 2, 3)],
 )
 
-type cameraData = {vmTransform: array<float>,pvmTransform: array<float>}
+type renderData = {
+  vmTransform: array<float>,
+  pvmTransform: array<float>,
+  viewTransform: array<float>,
+  lightPos: Vec3.t
+}
 
-// Build a renderer to suit the program
+// Build a renderer to suit the GLSL program
 let myRenderer = Renderer.makeRenderer(
   ~uniforms=[
-    ("u_Light_position", (context, ref, _, _) => WebGL.uniform3fv(context, ref, [-1., 5., 0.])),
+    ("u_Light_position", (context, ref, _, {lightPos}) => {
+      WebGL.uniform3f(context, ref, lightPos.x, lightPos.y, lightPos.z)
+    }),
     (
       "u_PVM_transform",
-      (context, ref, _, {pvmTransform}) => WebGL.uniformMatrix4fv(context, ref, false, pvmTransform),
+      (context, ref, _, {pvmTransform}) =>
+        WebGL.uniformMatrix4fv(context, ref, false, pvmTransform),
     ),
     // to do: custom properties to the Renderer
     (
@@ -35,17 +43,14 @@ let myRenderer = Renderer.makeRenderer(
       "a_Vertex",
       (context, ref, {positions}, _) => Renderer.bufferToAttrib(context, positions, ref, 3),
     ),
-    (
-      "a_Color",
-      (context, ref, _, _) => WebGL.vertexAttrib3f(context, ref, 1., 0., 1.),
-    ),
+    ("a_Color", (context, ref, _, _) => WebGL.vertexAttrib3f(context, ref, 1., 0., 1.)),
     (
       "a_Vertex_normal",
       (context, ref, {normals}, _) => Renderer.bufferToAttrib(context, normals, ref, 3),
     ),
   ],
   ~render=(context, {length}, _) => {
-    WebGL.drawArrays(context, #Triangles, 0,length)
+    WebGL.drawArrays(context, #Triangles, 0, length)
   },
 )
 
@@ -57,53 +62,71 @@ let app = context => {
 
     // Set up the renderer and the objects
     let render = myRenderer(context, program)
-    let objects = Array.map([mesh], mesh => Scene.loadMesh(context, mesh))->Util.array_removeNone
+    let meshes = Array.map([mesh], mesh => Scene.loadMesh(context, mesh))->Util.array_removeNone
+
+    let randRange = (min, max) => Js.Math.random() *. (max -. min) +. min
+
+    let scene =
+      meshes[0]->Option.mapWithDefault([], mesh =>
+        Array.range(0, 10000)->Array.map(_ =>
+          Scene.makeObject(
+            mesh,
+            ~pos=Vec3.make(randRange(-40.,40.), -10., randRange(10.,200.)),
+            ~color=Vec3.make(1., 0., 0.),
+          )
+        )
+      )
 
     // Camera transformations
     let projection =
-      Camera.perspectiveCamera(45., 1.33, 0.05, 10.)->Option.getWithDefault(Matrix4.identity)
-    let view = Camera.lookAtTransform(Vec3.make(-1., 0.5, -3.), Vec3.zero, Vec3.unitY)
+      Camera.perspectiveCamera(45., 1.33, 0.1, 200.)->Option.getWithDefault(Matrix4.identity)
+    let view = Camera.lookAtTransform(Vec3.make(0., 2., -7.), Vec3.zero, Vec3.unitY)
 
     let ang = ref(0.)
     let ang2 = ref(0.)
 
     let rotY = Matrix4.empty()
     let rotZ = Matrix4.empty()
+    let rotBoth = Matrix4.empty()
     let modelTransform = Matrix4.empty()
     let vmTransform = Matrix4.empty()
     let pvmTransform = Matrix4.empty()
 
+    let light = Vec3.make(0., 10., -20.)
+    let vmLight = Matrix4.mulVec3(view, light)
+    Js.log2("vmLight", vmLight)
+
     animate(_ => {
-
-      // Model transformation
-      Matrix4.mulInto(
-        modelTransform,
-        Transform.rotateZInto(rotZ, Js.Math.sin(ang2.contents) *. 30.),
-        Transform.rotateYInto(rotY, ang.contents)
-      )->ignore
-      Matrix4.mulInto(vmTransform, view, modelTransform)->ignore
-      Matrix4.mulInto(pvmTransform, projection, vmTransform)->ignore
-
+      // Animate
       ang := ang.contents +. 5.
       ang2 := ang2.contents +. 0.05
 
+      // Combined rotation
+      Transform.rotateZInto(rotZ, Js.Math.sin(ang2.contents) *. 30.)->ignore
+      Transform.rotateYInto(rotY, ang.contents)->ignore
+      Matrix4.mulInto(rotBoth, rotZ, rotY)->ignore
+
       // Render each object
-      Array.forEach(objects, meshData =>
+      Array.forEach(scene, item => {
+        Scene.loadObjectTransform(modelTransform, item)->ignore
+        Matrix4.mulInto(modelTransform, modelTransform, rotBoth)->ignore
+
+        // Transform to camera space
+        Matrix4.mulInto(vmTransform, view, modelTransform)->ignore
+        Matrix4.mulInto(pvmTransform, projection, vmTransform)->ignore
+
         render(
-          meshData,
+          item.mesh,
           {
             pvmTransform: pvmTransform,
             vmTransform: vmTransform,
+            viewTransform: view,
+            lightPos: vmLight
           },
         )
-      )
+      })
     })
   })
 }
 
 Browser.getElementById("canvas")->Option.flatMap(Renderer.makeContext)->Option.map(app)->ignore
-
-// switch ReactDOM.querySelector("#root") {
-// | Some(root) => ReactDOM.render(<Ui_GLCanvas content={[mesh.data]} />, root)
-// | None => Js.log("Error: could not find react element")
-// }

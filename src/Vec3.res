@@ -1,6 +1,13 @@
-type t = {x: float, y: float, z: float}
+type t = {mutable x: float, mutable y: float, mutable z: float}
 
 let make = (x, y, z) => {x: x, y: y, z: z}
+let load = (dest, x, y, z) => {
+  dest.x = x
+  dest.y = y
+  dest.z = z
+  dest
+}
+let empty = () => {x: 0., y: 0., z: 0.}
 
 let fromTuple = ((x, y, z)) => {x: x, y: y, z: z}
 

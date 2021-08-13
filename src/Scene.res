@@ -18,3 +18,22 @@ let loadMesh = (context, mesh: Mesh.t): option<Renderer.meshData> => {
   | _ => None
   }
 }
+
+type object = {
+  mesh: Renderer.meshData,
+  pos: Vec3.t,
+  color: Vec3.t,
+}
+
+let makeObject = (mesh, ~pos, ~color) => {
+  {
+    mesh: mesh,
+    pos: pos,
+    color: color,
+  }
+}
+
+
+let loadObjectTransform = (dest, {pos}) => {
+  Transform.translateInto(dest, pos.x, pos.y, pos.z)
+}
