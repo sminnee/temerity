@@ -5,6 +5,7 @@ open Belt
 type meshData = {
   positions: WebGL.buffer,
   normals: WebGL.buffer,
+  textureCoords: WebGL.buffer,
   length: int,
 }
 
@@ -48,6 +49,40 @@ let loadProgram = (context, vertexSrc, fragmentSrc) => {
   }
 }
 
+/*
+single pixel texture
+
+  // Because images have to be downloaded over the internet
+  // they might take a moment until they are ready.
+  // Until then put a single pixel in the texture so we can
+  // use it immediately. When the image has finished downloading
+  // we'll update the texture with the contents of the image.
+  const level = 0;
+  const internalFormat = gl.RGBA;
+  const width = 1;
+  const height = 1;
+  const border = 0;
+  const srcFormat = gl.RGBA;
+  const srcType = gl.UNSIGNED_BYTE;
+  const pixel = new Uint8Array([0, 0, 255, 255]);  // opaque blue
+
+  WebGL.bindTexture(#Texture2D, texture);
+  gl.texImage2D(gl.TEXTURE_2D, level, internalFormat,
+                width, height, border, srcFormat, srcType,
+                pixel);
+
+*/
+
+@ocaml.doc("Load a texture into the GPU")
+let loadTexture = (context, image) => {
+  let texture = WebGL.createTexture(context);
+  WebGL.bindTexture(context, #Texture2D, texture);
+  WebGL.texImage2D(context, #Texture2D, 0, #RGBA, #RGBA, #UnsignedByte, image);
+  WebGL.texParameteri(context, #Texture2D, #TextureMagFilter, #Nearest);
+  WebGL.texParameteri(context, #Texture2D, #TextureMinFilter, #Nearest);
+  texture
+}
+
 @ocaml.doc("Bind the content of a buffer to an attribute for a render operation")
 let bufferToAttrib = (context, buffer, attrib, itemLength) => {
   // Activate the model's vertex Buffer Object
@@ -67,10 +102,18 @@ let makeRenderer = (context, program, ~uniforms, ~attributes, ~render) => {
   Js.log("makeRenderer")
   let handlers = Array.concat(
     Array.map(uniforms, ((name, handler)) => {
-      handler(context, WebGL.getUniformLocation(context, program, name))
+      let ref = WebGL.getUniformLocation(context, program, name)
+      if ref == -1 {
+        failwith(`Cannot find GLSL uniform ${name}`)
+      }
+      handler(context, ref)
     }),
     Array.map(attributes, ((name, handler)) => {
-      handler(context, WebGL.getAttribLocation(context, program, name))
+      let ref = WebGL.getAttribLocation(context, program, name)
+      if  ref == -1 {
+        failwith(`Cannot find GLSL attribute ${name}`)
+      }
+      handler(context, ref)
     }),
   )
 

@@ -12,9 +12,14 @@ let loadMesh = (context, mesh: Mesh.t): option<Renderer.meshData> => {
     WebGL.bufferData(context, #ArrayBuffer, mesh.normals, #StaticDraw)
     id
   })
-  switch (positions, normals) {
-  | (Some(positions), Some(normals)) =>
-    Some({positions: positions, normals: normals, length: mesh.length})
+  let textureCoords = WebGL.createBuffer(context)->Option.map(id => {
+    WebGL.bindBuffer(context, #ArrayBuffer, id)
+    WebGL.bufferData(context, #ArrayBuffer, mesh.textureCoords, #StaticDraw)
+    id
+  })
+  switch (positions, normals, textureCoords) {
+  | (Some(positions), Some(normals), Some(textureCoords)) =>
+    Some({positions: positions, normals: normals, textureCoords: textureCoords, length: mesh.length})
   | _ => None
   }
 }

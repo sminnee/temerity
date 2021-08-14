@@ -13,11 +13,13 @@ uniform vec3 u_Light_position;
 attribute vec3 a_Vertex;
 attribute vec3 a_Color;
 attribute vec3 a_Vertex_normal;
+attribute vec2 a_Texture_coordinate;
 
 // Data (to be interpolated) that is passed on to the fragment shader
 varying vec3 v_Vertex;
 varying vec4 v_Color;
 varying vec3 v_Normal;
+varying vec2 v_Texture_coordinate;
 
 void main() {
 
@@ -31,6 +33,8 @@ void main() {
 
   // Pass the vertex's color to the fragment shader.
   v_Color = vec4(a_Color, 1.0);
+
+  v_Texture_coordinate = a_Texture_coordinate;
 
   // Transform the location of the vertex for the rest of the graphics pipeline
   gl_Position = u_PVM_transform * vec4(a_Vertex, 1.0);

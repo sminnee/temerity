@@ -7,7 +7,7 @@ type reduceState<'a> = {
 }
 
 let reduce = (input, start, fn) => {
-  let state = { start: 0, accum: start }
+  let state = {start: 0, accum: start}
   let len = String.length(input)
 
   while state.start < len {
@@ -18,7 +18,7 @@ let reduce = (input, start, fn) => {
       Js.String.substring(input, ~from=state.start, ~to_=next)
     }
     state.accum = fn(state.accum, string)
-    state.start = next == -1 ? len : next+1
+    state.start = next == -1 ? len : next + 1
   }
 
   state.accum

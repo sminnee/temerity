@@ -100,11 +100,12 @@ let fromString = content => {
   LineWalker.reduce(content, empty(), (obj, row) =>
     switch parseRow(row) {
     | Vertex([x, y, z]) => objAddVertex(obj, (x, y, z))
-    | Face([(a, aTex, aN), (b, bTex, bN), (c, cTex, cN)]) => objAddFace(obj, (a, b, c))
+    | Face([(a, aTex, aN), (b, bTex, bN), (c, cTex, cN)]) =>
+      objAddFace(obj, (a, b, c))
       ->objAddFaceNormal((aN, bN, cN))
       ->objAddFaceTexture((aTex, bTex, cTex))
-    | TextureCoord([u,v]) => objAddTextureCoord(obj, (u,v))
-    | VertexNormal([x,y,z]) => objAddNormal(obj, (x,y,z))
+    | TextureCoord([u, v]) => objAddTextureCoord(obj, (u, v))
+    | VertexNormal([x, y, z]) => objAddNormal(obj, (x, y, z))
 
     | Vertex(_) => failwith(`Obj vertices must be 3D: "${row}"`)
     | TextureCoord(_) => failwith(`Obj text coords must be 2D: "${row}"`)

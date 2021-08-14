@@ -4,8 +4,9 @@ type contextAttributes
 type buffer
 type shader
 type program
-type attribRef
-type uniformRef
+type attribRef = int
+type uniformRef = int
+type texture
 
 type activeInfo = {
   name: string,
@@ -35,7 +36,8 @@ external activeTexture: (
   t,
   @int
   [
-    | @as(33985) #Texture1
+    | @as(33984) #Texture0
+    | #Texture1
     | #Texture2
     | #Texture3
     | #Texture4
@@ -520,3 +522,125 @@ external drawElements: (
 @send external finish: t => unit = "finish"
 
 @send external flush: t => unit = "flush"
+
+// Textures
+
+@send
+external bindTexture: (
+  t,
+  @int [@as(3553) #Texture2D | @as(34067) #TextureCubeMap],
+  texture,
+) => unit = "bindTexture"
+
+// compressedTexImage2D
+// compressedTexSubImage2D
+
+@send
+external copyTexImage2D: (
+  t,
+  [
+    | @as(3553) #Texture2D
+    | @as(34069) #TextureCubeMapPositiveX
+    | #TextureCubeMapNegativeX
+    | #TextureCubeMapPositiveY
+    | #TextureCubeMapNegativeY
+    | #TextureCubeMapPositiveZ
+    | #TextureCubeMapNegativeZ
+  ],
+  int,
+  int,
+  int,
+  int,
+  int,
+  int,
+  int,
+) => unit = "copyTexImage2D"
+
+@send
+external copyTexSubImage2D: (
+  t,
+  [
+    | @as(3553) #Texture2D
+    | @as(34069) #TextureCubeMapPositiveX
+    | #TextureCubeMapNegativeX
+    | #TextureCubeMapPositiveY
+    | #TextureCubeMapNegativeY
+    | #TextureCubeMapPositiveZ
+    | #TextureCubeMapNegativeZ
+  ],
+  int,
+  int,
+  int,
+  int,
+  int,
+  int,
+  int,
+) => unit = "copyTexImage2D"
+
+@send
+external createTexture: t => texture = "createTexture"
+
+@send
+external deleteTexture: (t, texture) => unit = "deleteTexture"
+
+@send
+external generateMipMap: (t, @int [@as(3553) #Texture2D | @as(34067) #TextureCubeMap]) => unit =
+  "generateMipMap"
+
+// getTexParameter
+
+@send
+external isTexture: (t, texture) => bool = "isTexture"
+
+@send
+external texImage2D: (
+  t,
+  @int
+  [
+    | @as(3553) #Texture2D
+    | @as(34069) #TextureCubeMapPositiveX
+    | #TextureCubeMapNegativeX
+    | #TextureCubeMapPositiveY
+    | #TextureCubeMapNegativeY
+    | #TextureCubeMapPositiveZ
+    | #TextureCubeMapNegativeZ
+  ],
+  int,
+  @int [@as(6406) #Alpha | #RGB | #RGBA | #Luminance | #LuminanceAlpha],
+  @int [@as(6406) #Alpha | #RGB | #RGBA | #Luminance | #LuminanceAlpha],
+  @int
+  [
+    | @as(5121) #UnsignedByte
+    | @as(33635) #UnsignedShort_565
+    | @as(32819) #UsignedShort_4444
+    | #UsignedShort_5551
+  ],
+  Loader_Texture.image,
+) => unit = "texImage2D"
+
+// texSubImage2D
+
+@send
+external texParameteri: (
+  t,
+  @int [@as(3553) #Texture2D | @as(34067) #TextureCubeMap],
+  @int
+  [
+    | @as(10240) #TextureMagFilter
+    | #TextureMinFilter
+    | #TextureWrapS
+    | #TextureWrapT
+  ],
+  @int
+  [
+    | @as(9729) #Nearest
+    | #Linear
+    | @as(9984) #NearestMipmapNearest
+    | #LinearMipmapNearest
+    | #NearestMipmapLinear
+    | #LinearMipmapLinear
+    | @as(10497) #Repeat
+    | @as(33071) #ClampToEdge
+    | @as(33648) #MirroredRepeat
+  ],
+) => unit = "texParameteri"

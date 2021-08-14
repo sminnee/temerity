@@ -35,10 +35,15 @@ let myRenderer = Renderer.makeRenderer(
       (context, ref, _, {pvmTransform}) =>
         WebGL.uniformMatrix4fv(context, ref, false, pvmTransform),
     ),
-    // to do: custom properties to the Renderer
     (
       "u_VM_transform",
       (context, ref, _, {vmTransform}) => WebGL.uniformMatrix4fv(context, ref, false, vmTransform),
+    ),
+    (
+      "u_Sampler",
+      (context, ref, _, _) => {
+        WebGL.uniform1i(context, ref, 0)
+      },
     ),
   ],
   ~attributes=[
@@ -51,31 +56,40 @@ let myRenderer = Renderer.makeRenderer(
       "a_Vertex_normal",
       (context, ref, {normals}, _) => Renderer.bufferToAttrib(context, normals, ref, 3),
     ),
+    (
+      "a_Texture_coordinate",
+      (context, ref, {textureCoords}, _) => Renderer.bufferToAttrib(context, textureCoords, ref, 2),
+    ),
   ],
   ~render=(context, {length}, _) => {
     WebGL.drawArrays(context, #Triangles, 0, length)
   },
 )
 
-let app = (context, mesh) => {
+let app = (context, mesh, textureImage) => {
   open Renderer
   loadProgram(context, vertexShaderSrc, fragmentShaderSrc)->Option.map(program => {
     WebGL.useProgram(context, program)
     WebGL.enable(context, #DepthTest)
-    WebGL.clearColor(context, 0.,0.,0.,1.)
+    WebGL.clearColor(context, 0., 0., 0., 1.)
 
     // Set up the renderer and the objects
     let render = myRenderer(context, program)
     let meshes = Array.map([mesh], mesh => Scene.loadMesh(context, mesh))->Util.array_removeNone
 
+    // Load mesh texture into texture0
+    let texture = Renderer.loadTexture(context, textureImage)
+    WebGL.activeTexture(context, #Texture0)
+    WebGL.bindTexture(context, #Texture2D, texture)
+
     let randRange = (min, max) => Js.Math.random() *. (max -. min) +. min
 
     let scene =
       meshes[0]->Option.mapWithDefault([], mesh =>
-        Array.range(0, 1000)->Array.map(_ =>
+        Array.range(0, 8000)->Array.map(_ =>
           Scene.makeObject(
             mesh,
-            ~pos=Vec3.make(randRange(-40., 40.), 0., randRange(-100., 100.)),
+            ~pos=Vec3.make(randRange(-100., 100.), 0., randRange(-200., 200.)),
             ~color=Vec3.make(1., 0., 0.),
           )
         )
@@ -95,7 +109,7 @@ let app = (context, mesh) => {
     let modelTransform = Matrix4.empty()
     let vmTransform = Matrix4.empty()
     let pvmTransform = Matrix4.empty()
-    let modelScale = Transform.scale(2.,2., 2.)
+    let modelScale = Transform.scale(2., 2., 2.)
 
     let light = Vec3.make(0., 50., 0.)
     let lightMarker = Vec3.make(0., 30., 0.)
@@ -106,15 +120,15 @@ let app = (context, mesh) => {
     animate(_ => {
       // Animate
       ang := ang.contents +. 1.
-      ang2 := ang2.contents +. 0.05
+      ang2 := ang2.contents +. 0.005
 
       // Light rotation
-      Transform.rotateZInto(lightTransform, ang2.contents)->ignore
+      Transform.rotateZInto(lightTransform, ang.contents /. 2.)->ignore
       Matrix4.mulVec3Into(vmLight, lightTransform, light)->ignore
       Matrix4.mulVec3Into(vmLight, view, vmLight)->ignore
 
       // Combined rotation
-      Transform.rotateZInto(rotZ, Js.Math.sin(ang2.contents) *. 30.)->ignore
+      Transform.rotateZInto(rotZ, Js.Math.sin(ang2.contents) *. 270.)->ignore
       Transform.rotateYInto(rotY, ang.contents)->ignore
       Matrix4.mul3Into(rotBoth, modelScale, rotZ, rotY)->ignore
 
@@ -145,13 +159,18 @@ let app = (context, mesh) => {
   })
 }
 
-Loader_Obj.load("obj/famling1-talk.vox.obj")
-|> Js.Promise.then_((obj: Loader_Obj.t) => {
-  let mesh = Mesh.make(obj.vertices, obj.faces)
+Js.Promise.all2((
+  Loader_Obj.load("obj/famling1-talk.vox.obj"),
+  Loader_Texture.load("obj/famling1-talk.vox.png"),
+))
+|> Js.Promise.then_(((obj: Loader_Obj.t, textureImage)) => {
+  let mesh = Mesh.fromObject(obj)
+
   Browser.getElementById("canvas")
   ->Option.flatMap(Renderer.makeContext)
-  ->Option.map(app(_, mesh))
+  ->Option.map(app(_, mesh, textureImage))
   ->ignore
+
   Js.Promise.resolve()
 })
 |> ignore
