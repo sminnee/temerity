@@ -1,4 +1,5 @@
 open Belt
+let numObjects = 10000
 
 %%raw(`
 import _fragmentShaderSrc from "./shaders/fragment.glsl"
@@ -66,6 +67,38 @@ let myRenderer = Renderer.makeRenderer(
   },
 )
 
+let hardCodedRenderer = (context, program) => {
+  let lightRef = WebGL.getUniformLocation(context, program, "u_Light_position")
+  let pvmRef = WebGL.getUniformLocation(context, program, "u_PVM_transform")
+  let vmRef = WebGL.getUniformLocation(context, program, "u_VM_transform")
+  let samplerRef = WebGL.getUniformLocation(context, program, "u_Sampler")
+
+  let vertexRef = WebGL.getAttribLocation(context, program, "a_Vertex")
+  let colorRef = WebGL.getAttribLocation(context, program, "a_Color")
+  let normalRef = WebGL.getAttribLocation(context, program, "a_Vertex_normal")
+  let textureCoordRef = WebGL.getAttribLocation(context, program, "a_Texture_coordinate")
+
+  (
+    // Once per frame
+    ({textureCoords, normals, positions}: Renderer.meshData, {lightPos}) => {
+      Renderer.bufferToAttrib(context, positions, vertexRef, 3)
+      WebGL.vertexAttrib3f(context, colorRef, 1., 0., 1.)
+      Renderer.bufferToAttrib(context, normals, normalRef, 3)
+      Renderer.bufferToAttrib(context, textureCoords, textureCoordRef, 2)
+
+      WebGL.uniform3f(context, lightRef, lightPos.x, lightPos.y, lightPos.z)
+      WebGL.uniform1i(context, samplerRef, 0)
+    },
+    // Once per object
+    ({length}: Renderer.meshData, {vmTransform, pvmTransform}) => {
+      WebGL.uniformMatrix4fv(context, pvmRef, false, pvmTransform)
+      WebGL.uniformMatrix4fv(context, vmRef, false, vmTransform)
+
+      WebGL.drawArrays(context, #Triangles, 0, length)
+    },
+  )
+}
+
 let app = (context, mesh, textureImage) => {
   open Renderer
   loadProgram(context, vertexShaderSrc, fragmentShaderSrc)->Option.map(program => {
@@ -74,7 +107,7 @@ let app = (context, mesh, textureImage) => {
     WebGL.clearColor(context, 0., 0., 0., 1.)
 
     // Set up the renderer and the objects
-    let render = myRenderer(context, program)
+    let (renderFrame, renderObject) = hardCodedRenderer(context, program)
     let meshes = Array.map([mesh], mesh => Scene.loadMesh(context, mesh))->Util.array_removeNone
 
     // Load mesh texture into texture0
@@ -86,7 +119,7 @@ let app = (context, mesh, textureImage) => {
 
     let scene =
       meshes[0]->Option.mapWithDefault([], mesh =>
-        Array.range(0, 8000)->Array.map(_ =>
+        Array.range(0, numObjects)->Array.map(_ =>
           Scene.makeObject(
             mesh,
             ~pos=Vec3.make(randRange(-100., 100.), 0., randRange(-200., 200.)),
@@ -132,6 +165,15 @@ let app = (context, mesh, textureImage) => {
       Transform.rotateYInto(rotY, ang.contents)->ignore
       Matrix4.mul3Into(rotBoth, modelScale, rotZ, rotY)->ignore
 
+      let renderData = {
+        pvmTransform: pvmTransform,
+        vmTransform: vmTransform,
+        viewTransform: view,
+        lightPos: vmLight,
+      }
+
+      renderFrame(Js.Array.unsafe_get(scene, 0).mesh, renderData)
+
       // Render each object
       Array.forEachWithIndex(scene, (idx, item) => {
         if idx == 0 {
@@ -141,19 +183,11 @@ let app = (context, mesh, textureImage) => {
 
         Matrix4.mulInto(modelTransform, modelTransform, rotBoth)->ignore
 
-        // Transform to camera space
+        // // Transform to camera space
         Matrix4.mulInto(vmTransform, view, modelTransform)->ignore
         Matrix4.mulInto(pvmTransform, projection, vmTransform)->ignore
 
-        render(
-          item.mesh,
-          {
-            pvmTransform: pvmTransform,
-            vmTransform: vmTransform,
-            viewTransform: view,
-            lightPos: vmLight,
-          },
-        )
+        renderObject(item.mesh, renderData)
       })
     })
   })
