@@ -7,6 +7,7 @@ type program
 type attribRef = int
 type uniformRef = int
 type texture
+type precisionFormat
 
 type activeInfo = {
   name: string,
@@ -44,8 +45,39 @@ external activeTexture: (
     | #Texture5
     | #Texture6
     | #Texture7
+    | #Texture8
+    | #Texture9
+    | #Texture10
+    | #Texture11
+    | #Texture12
+    | #Texture13
+    | #Texture14
+    | #Texture15
   ],
 ) => unit = "activeTexture"
+
+@send
+external textureBindingPointRaw: @int
+[
+  | @as(33984) #Texture0
+  | #Texture1
+  | #Texture2
+  | #Texture3
+  | #Texture4
+  | #Texture5
+  | #Texture6
+  | #Texture7
+  | #Texture8
+  | #Texture9
+  | #Texture10
+  | #Texture11
+  | #Texture12
+  | #Texture13
+  | #Texture14
+  | #Texture15
+] => int = "%identity"
+
+let textureBindingPoint = val => textureBindingPointRaw(val) - 33984
 
 @send external blendColor: (t, float, float, float, float) => unit = "blendColor"
 
@@ -402,7 +434,7 @@ external getShaderPrecisionFormat: (
     | @as(36340) #MediumInt
     | @as(36341) #HighInt
   ],
-) => WebGLPrecisionFormat.t = "getShaderPrecisionFormat"
+) => precisionFormat = "getShaderPrecisionFormat"
 
 @send external getShaderInfoLog: (t, shader) => string = "getShaderInfoLog"
 
@@ -615,7 +647,7 @@ external texImage2D: (
     | @as(32819) #UsignedShort_4444
     | #UsignedShort_5551
   ],
-  Loader_Texture.image,
+  'a,
 ) => unit = "texImage2D"
 
 // texSubImage2D

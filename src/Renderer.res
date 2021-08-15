@@ -20,35 +20,6 @@ let makeContext = canvas => {
   WebGL.getContext(canvas, "webgl")
 }
 
-@ocaml.doc("Load a shader")
-let loadShader = (shaderType, context, src) =>
-  WebGL.createShader(context, shaderType)->Option.map(shader => {
-    WebGL.shaderSource(context, shader, src)
-    WebGL.compileShader(context, shader)
-    shader
-  })
-
-@ocaml.doc("Load a program based on the 2 shader-sources provided")
-let loadProgram = (context, vertexSrc, fragmentSrc) => {
-  switch (
-    loadShader(#VertexShader, context, vertexSrc),
-    loadShader(#FragmentShader, context, fragmentSrc),
-  ) {
-  | (Some(vertex), Some(fragment)) =>
-    WebGL.createProgram(context)->Option.flatMap(program => {
-      WebGL.attachShader(context, program, vertex)
-      WebGL.attachShader(context, program, fragment)
-      WebGL.linkProgram(context, program)
-      if WebGL.getProgramParameterBool(context, program, #LinkStatus) {
-        Some(program)
-      } else {
-        None
-      }
-    })
-  | _ => None
-  }
-}
-
 /*
 single pixel texture
 
@@ -73,24 +44,6 @@ single pixel texture
 
 */
 
-@ocaml.doc("Load a texture into the GPU")
-let loadTexture = (context, image) => {
-  let texture = WebGL.createTexture(context);
-  WebGL.bindTexture(context, #Texture2D, texture);
-  WebGL.texImage2D(context, #Texture2D, 0, #RGBA, #RGBA, #UnsignedByte, image);
-  WebGL.texParameteri(context, #Texture2D, #TextureMagFilter, #Nearest);
-  WebGL.texParameteri(context, #Texture2D, #TextureMinFilter, #Nearest);
-  texture
-}
-
-@ocaml.doc("Bind the content of a buffer to an attribute for a render operation")
-let bufferToAttrib = (context, buffer, attrib, itemLength) => {
-  // Activate the model's vertex Buffer Object
-  WebGL.enableVertexAttribArray(context, attrib)
-  WebGL.bindBuffer(context, #ArrayBuffer, buffer)
-  WebGL.vertexAttribPointer(context, attrib, itemLength, #Float, false, 0, 0)
-}
-
 type cameraInput = {
   mesh: WebGL.buffer,
   meshLength: int,
@@ -110,7 +63,7 @@ let makeRenderer = (context, program, ~uniforms, ~attributes, ~render) => {
     }),
     Array.map(attributes, ((name, handler)) => {
       let ref = WebGL.getAttribLocation(context, program, name)
-      if  ref == -1 {
+      if ref == -1 {
         failwith(`Cannot find GLSL attribute ${name}`)
       }
       handler(context, ref)
@@ -133,8 +86,8 @@ let animate = handler => {
 
   let rec go = now => {
     animData.frames = animData.frames + 1
-    if (now -. animData.lastLog > 10000.) {
-      Js.log2("Frame-rate", animData.frames/10)
+    if now -. animData.lastLog > 2000. {
+      Js.log2("Frame-rate", animData.frames / 2)
       animData.frames = 0
       animData.lastLog = now
     }

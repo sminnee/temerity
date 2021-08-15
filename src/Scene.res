@@ -1,22 +1,10 @@
-open Belt
 
 @ocaml.doc("Load a mesh's data into the GPU, providing a buffer reference")
 let loadMesh = (context, mesh: Mesh.t): option<Renderer.meshData> => {
-  let positions = WebGL.createBuffer(context)->Option.map(id => {
-    WebGL.bindBuffer(context, #ArrayBuffer, id)
-    WebGL.bufferData(context, #ArrayBuffer, mesh.positions, #StaticDraw)
-    id
-  })
-  let normals = WebGL.createBuffer(context)->Option.map(id => {
-    WebGL.bindBuffer(context, #ArrayBuffer, id)
-    WebGL.bufferData(context, #ArrayBuffer, mesh.normals, #StaticDraw)
-    id
-  })
-  let textureCoords = WebGL.createBuffer(context)->Option.map(id => {
-    WebGL.bindBuffer(context, #ArrayBuffer, id)
-    WebGL.bufferData(context, #ArrayBuffer, mesh.textureCoords, #StaticDraw)
-    id
-  })
+  let positions = ResGL.Buffer.fromArray(context, mesh.positions)
+  let normals = ResGL.Buffer.fromArray(context, mesh.normals)
+  let textureCoords = ResGL.Buffer.fromArray(context, mesh.textureCoords)
+
   switch (positions, normals, textureCoords) {
   | (Some(positions), Some(normals), Some(textureCoords)) =>
     Some({positions: positions, normals: normals, textureCoords: textureCoords, length: mesh.length})

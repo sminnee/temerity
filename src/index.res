@@ -28,71 +28,80 @@ let myRenderer = Renderer.makeRenderer(
     (
       "u_Light_position",
       (context, ref, _, {lightPos}) => {
-        WebGL.uniform3f(context, ref, lightPos.x, lightPos.y, lightPos.z)
+        ResGL.Uniform.bind3f(context, ref, lightPos.x, lightPos.y, lightPos.z)
       },
     ),
     (
       "u_PVM_transform",
       (context, ref, _, {pvmTransform}) =>
-        WebGL.uniformMatrix4fv(context, ref, false, pvmTransform),
+        ResGL.Uniform.bindMatrix4(context, ref, pvmTransform),
     ),
     (
       "u_VM_transform",
-      (context, ref, _, {vmTransform}) => WebGL.uniformMatrix4fv(context, ref, false, vmTransform),
+      (context, ref, _, {vmTransform}) => ResGL.Uniform.bindMatrix4(context, ref,  vmTransform),
     ),
-    (
-      "u_Sampler",
-      (context, ref, _, _) => {
-        WebGL.uniform1i(context, ref, 0)
-      },
-    ),
+    // (
+    //   "u_Sampler",
+    //   (context, ref, _, _) => {
+    //     WebGL.uniform1i(context, ref, 0)
+    //   },
+    // ),
   ],
   ~attributes=[
     (
       "a_Vertex",
-      (context, ref, {positions}, _) => Renderer.bufferToAttrib(context, positions, ref, 3),
+      (context, ref, {positions}, _) => ResGL.Attribute.bindBuffer(context, ref, 3, positions),
     ),
-    ("a_Color", (context, ref, _, _) => WebGL.vertexAttrib3f(context, ref, 1., 0., 1.)),
+    ("a_Color", (context, ref, _, _) => ResGL.Attribute.bind3f(context, ref, 1., 0., 1.)),
     (
       "a_Vertex_normal",
-      (context, ref, {normals}, _) => Renderer.bufferToAttrib(context, normals, ref, 3),
+      (context, ref, {normals}, _) => ResGL.Attribute.bindBuffer(context, ref, 3, normals),
     ),
     (
       "a_Texture_coordinate",
-      (context, ref, {textureCoords}, _) => Renderer.bufferToAttrib(context, textureCoords, ref, 2),
-    ),
+      (context, ref, {textureCoords}, _) => ResGL.Attribute.bindBuffer(context, ref, 2, textureCoords),
+    )
   ],
   ~render=(context, {length}, _) => {
     WebGL.drawArrays(context, #Triangles, 0, length)
   },
 )
 
-let hardCodedRenderer = (context, program) => {
-  let lightRef = WebGL.getUniformLocation(context, program, "u_Light_position")
-  let pvmRef = WebGL.getUniformLocation(context, program, "u_PVM_transform")
-  let vmRef = WebGL.getUniformLocation(context, program, "u_VM_transform")
-  let samplerRef = WebGL.getUniformLocation(context, program, "u_Sampler")
+let hardCodedRenderer = (context, program, texture) => {
+  open ResGL
 
-  let vertexRef = WebGL.getAttribLocation(context, program, "a_Vertex")
-  let colorRef = WebGL.getAttribLocation(context, program, "a_Color")
-  let normalRef = WebGL.getAttribLocation(context, program, "a_Vertex_normal")
-  let textureCoordRef = WebGL.getAttribLocation(context, program, "a_Texture_coordinate")
+  let uRef = Uniform.ref(context, program)
+  let aRef = Attribute.ref(context, program)
+
+  let lightRef = uRef("u_Light_position")
+  let pvmRef = uRef("u_PVM_transform")
+  let vmRef = uRef("u_VM_transform")
+  let samplerRef = uRef("u_Sampler")
+
+  let vertexRef = aRef("a_Vertex")
+  let colorRef = aRef("a_Color")
+  let normalRef = aRef("a_Vertex_normal")
+  let textureCoordRef = aRef("a_Texture_coordinate")
 
   (
+    // Once
+    () => {
+      Uniform.bindTexture2D(context, samplerRef, #Texture0, texture)
+    },
+
     // Once per frame
     ({textureCoords, normals, positions}: Renderer.meshData, {lightPos}) => {
-      Renderer.bufferToAttrib(context, positions, vertexRef, 3)
-      WebGL.vertexAttrib3f(context, colorRef, 1., 0., 1.)
-      Renderer.bufferToAttrib(context, normals, normalRef, 3)
-      Renderer.bufferToAttrib(context, textureCoords, textureCoordRef, 2)
+      Attribute.bindBuffer(context,vertexRef, 3, positions )
+      Attribute.bind3f(context, colorRef, 1., 0., 1.)
+      Attribute.bindBuffer(context, normalRef, 3, normals)
+      Attribute.bindBuffer(context, textureCoordRef, 2, textureCoords)
 
-      WebGL.uniform3f(context, lightRef, lightPos.x, lightPos.y, lightPos.z)
-      WebGL.uniform1i(context, samplerRef, 0)
+      Uniform.bind3f(context, lightRef, lightPos.x, lightPos.y, lightPos.z)
     },
     // Once per object
     ({length}: Renderer.meshData, {vmTransform, pvmTransform}) => {
-      WebGL.uniformMatrix4fv(context, pvmRef, false, pvmTransform)
-      WebGL.uniformMatrix4fv(context, vmRef, false, vmTransform)
+      Uniform.bindMatrix4(context, pvmRef, pvmTransform)
+      Uniform.bindMatrix4(context, vmRef, vmTransform)
 
       WebGL.drawArrays(context, #Triangles, 0, length)
     },
@@ -101,19 +110,20 @@ let hardCodedRenderer = (context, program) => {
 
 let app = (context, mesh, textureImage) => {
   open Renderer
-  loadProgram(context, vertexShaderSrc, fragmentShaderSrc)->Option.map(program => {
-    WebGL.useProgram(context, program)
+  open ResGL
+  Program.fromStringPair(context, vertexShaderSrc, fragmentShaderSrc)->Option.map(program => {
+    Program.use(context, program)
     WebGL.enable(context, #DepthTest)
     WebGL.clearColor(context, 0., 0., 0., 1.)
 
-    // Set up the renderer and the objects
-    let (renderFrame, renderObject) = hardCodedRenderer(context, program)
     let meshes = Array.map([mesh], mesh => Scene.loadMesh(context, mesh))->Util.array_removeNone
 
     // Load mesh texture into texture0
-    let texture = Renderer.loadTexture(context, textureImage)
-    WebGL.activeTexture(context, #Texture0)
-    WebGL.bindTexture(context, #Texture2D, texture)
+    let texture = ResGL.Texture.fromImage(context, textureImage)
+
+    // Set up the renderer and the objects
+    let (renderOnce, renderFrame, renderObject) = hardCodedRenderer(context, program, texture)
+
 
     let randRange = (min, max) => Js.Math.random() *. (max -. min) +. min
 
@@ -149,6 +159,8 @@ let app = (context, mesh, textureImage) => {
     let lightTransform = Matrix4.empty()
 
     let vmLight = Vec3.empty()
+
+    renderOnce()
 
     animate(_ => {
       // Animate
