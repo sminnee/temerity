@@ -41,10 +41,16 @@ module Texture = {
 module Shader = {
   @ocaml.doc("Load a shader")
   let fromString = (context, shaderType, src) =>
-    WebGL.createShader(context, shaderType)->Option.map(shader => {
+    WebGL.createShader(context, shaderType)
+    ->Util.result_fromOption("Can't create shader")
+    ->Result.flatMap(shader => {
       WebGL.shaderSource(context, shader, src)
       WebGL.compileShader(context, shader)
-      shader
+      if WebGL.getShaderParameterBool(context, shader, #CompileStatus) {
+        Result.Ok(shader)
+      } else {
+        Result.Error("Shader compile error: " ++ WebGL.getShaderInfoLog(context, shader))
+      }
     })
 }
 
@@ -52,14 +58,16 @@ module Shader = {
 module Program = {
   @ocaml.doc("Create a program from a pair of compiled shaders")
   let fromShaderPair = (context, vertexShader, fragmentShader) => {
-    WebGL.createProgram(context)->Option.flatMap(program => {
+    WebGL.createProgram(context)
+    ->Util.result_fromOption("Can't create program")
+    ->Result.flatMap(program => {
       WebGL.attachShader(context, program, vertexShader)
       WebGL.attachShader(context, program, fragmentShader)
       WebGL.linkProgram(context, program)
       if WebGL.getProgramParameterBool(context, program, #LinkStatus) {
-        Some(program)
+        Result.Ok(program)
       } else {
-        None
+        Result.Error("Program link error: " ++ WebGL.getProgramInfoLog(context, program))
       }
     })
   }
@@ -70,8 +78,8 @@ module Program = {
       Shader.fromString(context, #VertexShader, vertexSrc),
       Shader.fromString(context, #FragmentShader, fragmentSrc),
     ) {
-    | (Some(vertex), Some(fragment)) => fromShaderPair(context, vertex, fragment)
-    | _ => None
+    | (Result.Ok(vertex), Result.Ok(fragment)) => fromShaderPair(context, vertex, fragment)
+    | (Result.Error(msg), _) | (_, Result.Error(msg)) => Result.Error(msg)
     }
   }
 
@@ -110,11 +118,41 @@ module Attribute = {
   let bind3f = WebGL.vertexAttrib3f
   let bind4f = WebGL.vertexAttrib4f
 
-  @ocaml.doc("Bind the content of a buffer to an attribute for a render opera tion")
-  let bindBuffer = (context, attrib, itemLength, buffer) => {
+  @ocaml.doc("Bind the content of a buffer to an attribute for a render operation")
+  let bindBuffer = (context, ref, itemLength, buffer) => {
     // Activate the model's vertex Buffer Object
-    WebGL.enableVertexAttribArray(context, attrib)
+    WebGL.enableVertexAttribArray(context, ref)
     WebGL.bindBuffer(context, #ArrayBuffer, buffer)
-    WebGL.vertexAttribPointer(context, attrib, itemLength, #Float, false, 0, 0)
+    WebGL.vertexAttribPointer(context, ref, itemLength, #Float, false, 0, 0)
+  }
+
+  @ocaml.doc("Bind the content of a buffer to an attribute for a render operation")
+  let bindBufferPerInstance = (context, ref, itemLength, buffer) => {
+    // Activate the model's vertex Buffer Object
+    WebGL.enableVertexAttribArray(context, ref)
+    WebGL.bindBuffer(context, #ArrayBuffer, buffer)
+    WebGL.vertexAttribPointer(context, ref, itemLength, #Float, false, 0, 0)
+    WebGL.vertexAttribDivisor(context, ref, 1)
+  }
+
+  @ocaml.doc("Bind the content of a buffer to an attribute for a render operation")
+  let bindMatrixBufferPerInstance = (context, ref, buffer) => {
+    // Activate the model's vertex Buffer Object
+    WebGL.enableVertexAttribArray(context, ref)
+    WebGL.enableVertexAttribArray(context, ref + 1)
+    WebGL.enableVertexAttribArray(context, ref + 2)
+    WebGL.enableVertexAttribArray(context, ref + 3)
+
+    WebGL.bindBuffer(context, #ArrayBuffer, buffer)
+
+    WebGL.vertexAttribPointer(context, ref, 4, #Float, false, 16 * 4, 0)
+    WebGL.vertexAttribPointer(context, ref + 1, 4, #Float, false, 16 * 4, 4 * 4)
+    WebGL.vertexAttribPointer(context, ref + 2, 4, #Float, false, 16 * 4, 8 * 4)
+    WebGL.vertexAttribPointer(context, ref + 3, 4, #Float, false, 16 * 4, 12 * 4)
+
+    WebGL.vertexAttribDivisor(context, ref, 1)
+    WebGL.vertexAttribDivisor(context, ref + 1, 1)
+    WebGL.vertexAttribDivisor(context, ref + 2, 1)
+    WebGL.vertexAttribDivisor(context, ref + 3, 1)
   }
 }

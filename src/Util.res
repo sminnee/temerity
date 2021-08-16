@@ -287,6 +287,11 @@ let result_alterMessage = (result, updater) =>
   | Result.Error(messages) => Result.Error(Array.map(messages, updater))
   }
 
+let result_log = (result, fn) => switch result {
+| Result.Ok(x) => fn(x)
+| Result.Error(msg) => Js.log2("Error", msg)
+}
+
 // Operations on int
 
 @ocaml.doc("Return the integer into a string such as '+1', '+0' or '-1'")

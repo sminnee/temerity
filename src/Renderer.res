@@ -17,7 +17,7 @@ let resizeCanvas = canvas => {
 
 let makeContext = canvas => {
   resizeCanvas(canvas)
-  WebGL.getContext(canvas, "webgl")
+  WebGL.getContext(canvas, "webgl2")
 }
 
 /*

@@ -46,6 +46,11 @@ module FloatBuffer = {
     ignore(buffer.next := buffer.next.contents + 2)
   }
 
+  let addMatrix4 = (buffer, matrix) => {
+    Array.blit(~src=matrix, ~srcOffset=0, ~dst=buffer.data, ~dstOffset=buffer.next.contents, ~len=16)
+    ignore(buffer.next := buffer.next.contents + 16)
+  }
+
   let repeat = (buffer, count, value) => {
     for i in 0 to count - 1 {
       ignore(buffer.data[buffer.next.contents + i] = value)

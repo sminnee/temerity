@@ -1,4 +1,3 @@
-
 @ocaml.doc("Load a mesh's data into the GPU, providing a buffer reference")
 let loadMesh = (context, mesh: Mesh.t): option<Renderer.meshData> => {
   let positions = ResGL.Buffer.fromArray(context, mesh.positions)

@@ -1,5 +1,8 @@
 // https://developer.mozilla.org/en-US/docs/Web/API/WebGLRenderingContext
+// https://developer.mozilla.org/en-US/docs/Web/API/WebGL2RenderingContext
+
 type t
+
 type contextAttributes
 type buffer
 type shader
@@ -8,6 +11,9 @@ type attribRef = int
 type uniformRef = int
 type texture
 type precisionFormat
+
+// to do: more clarity on this
+type index = int
 
 type activeInfo = {
   name: string,
@@ -303,8 +309,21 @@ external enable: (
 // Buffers
 
 @send
-external bindBuffer: (t, @int [@as(34962) #ArrayBuffer | #ElementArrayBuffer], buffer) => unit =
-  "bindBuffer"
+external bindBuffer: (
+  t,
+  @int
+  [
+    | @as(34962) #ArrayBuffer
+    | #ElementArrayBuffer
+    | @as(36662) #CopyReadBuffer
+    | #CopyWriteBuffer
+    | @as(35982) #TransformFeedbackBuffer
+    | @as(35345) #UniformBuffer
+    | @as(35051) #PixelPackBuffer
+    | #PixelUnpackBuffer
+  ],
+  buffer,
+) => unit = "bindBuffer"
 
 @send
 external bufferData: (
@@ -676,3 +695,157 @@ external texParameteri: (
     | @as(33648) #MirroredRepeat
   ],
 ) => unit = "texParameteri"
+
+// WebGL2
+
+// Drawing buffers
+
+@send external vertexAttribDivisor: (t, attribRef, int) => unit = "vertexAttribDivisor"
+
+@send
+external drawArraysInstanced: (
+  t,
+  @int [#Points | #Lines | #LineLoop | #LineStrip | #Triangles | #TriangleStrip | #TriangleFan],
+  int,
+  int,
+  int,
+) => unit = "drawArraysInstanced"
+
+@send
+external drawElementsInstance: (
+  t,
+  @int [#Points | #Lines | #LineLoop | #LineStrip | #Triangles | #TriangleStrip | #TriangleFan],
+  int,
+  @int [@as(5121) #UnsignedByte | @as(5123) #UnsignedShort],
+  int,
+  int,
+) => unit = "drawArraysInstanced"
+
+@send
+external drawRangeElements: (
+  t,
+  @int [#Points | #Lines | #LineLoop | #LineStrip | #Triangles | #TriangleStrip | #TriangleFan],
+  int,
+  int,
+  int,
+  @int [@as(5121) #UnsignedByte | @as(5123) #UnsignedShort],
+  int,
+) => unit = "drawArraysInstanced"
+
+@send
+external drawBuffers: (
+  t,
+  @int
+  [
+    | @as(0) #None
+    | @as(1029) #Back
+    | @as(36064) #ColorAttachment0
+    | #ColorAttachment1
+    | #ColorAttachment2
+    | #ColorAttachment3
+    | #ColorAttachment4
+    | #ColorAttachment5
+    | #ColorAttachment6
+    | #ColorAttachment7
+    | #ColorAttachment8
+    | #ColorAttachment9
+    | #ColorAttachment10
+    | #ColorAttachment11
+    | #ColorAttachment12
+    | #ColorAttachment13
+    | #ColorAttachment14
+    | #ColorAttachment15
+  ],
+) => unit = "drawBuffers"
+
+@send
+external clearBufferfv: (t, int, @int [@as(6144) #Color | #Depth], array<float>) => unit =
+  "clearBufferfv"
+@send
+external clearBufferiv: (t, int, @int [@as(6144) #Color | #Depth | #Stencil], array<int>) => unit =
+  "clearBufferiv"
+@send
+external clearBufferfuiv: (t, int, @int [#Color | #Depth | #Stencil], array<int>) => unit =
+  "clearBufferfuiv"
+@send
+external clearBufferfi: (t, int, @int [@as(34041) #DepthStencil], float, int) => unit =
+  "clearBufferfi"
+
+// Uniform buffer objects
+
+@send external bindBufferBase: (t, uniformRef, buffer) => unit = "bindBufferBase"
+
+@send external bindBufferRange: (t, uniformRef, buffer, int, int) => unit = "bindBufferRange"
+
+@send
+external getUniformIndices: (t, program, array<string>) => array<uniformRef> = "getUniformIndices"
+
+@send
+external getActiveUniformsType: (t, program, array<uniformRef>, @as(35383) _) => array<int> =
+  "getActiveUniforms"
+
+@send
+external getActiveUniformsInt: (
+  t,
+  program,
+  array<uniformRef>,
+  @int
+  [
+    | @as(35384) #UniformSize
+    | @as(35386) #UniformBlockIndex
+    | #UniformOffset
+    | #UniformArrayStride
+    | #UniformMatrixStride
+  ],
+) => array<int> = "getActiveUniforms"
+
+@send
+external getActiveUniformsBool: (
+  t,
+  program,
+  array<uniformRef>,
+  @int [@as(35390) #UniformIsRowMajor],
+) => array<int> = "getActiveUniforms"
+
+@send external getUniform: (t, program, uniformRef) => 'a = "getUniform"
+
+@send external getUniformBlockIndex: (t, program, string) => uniformRef = "getUniformBlockIndex"
+
+@send
+external getActiveUniformBlockParameterInt: (
+  t,
+  program,
+  uniformRef,
+  @int
+  [
+    | @as(35391) #UniformBlockBinding
+    | #UniformBlockDataSize
+    | @as(35394) #UniformBlockActiveUniforms
+  ],
+) => int = "getActiveUniformBlockParameter"
+
+@send
+external getActiveUniformBlockParameterArray: (
+  t,
+  program,
+  uniformRef,
+  @int [@as(35395) #UniformBlockActiveUniformIncides],
+) => array<int> = "getActiveUniformBlockParameter"
+
+@send
+external getActiveUniformBlockParameterBool: (
+  t,
+  program,
+  uniformRef,
+  @int
+  [
+    | @as(35396) #UniformBlockReferencedByVertexShader
+    | @as(35398) #UniformBlockReferencedByFragmentShader
+  ],
+) => bool = "getActiveUniformBlockParameter"
+
+@send
+external getActiveUnifomBlockName: (t, program, uniformRef) => string = "getActiveUnifomBlockName"
+
+@send
+external uniformBlockBinding: (t, program, uniformRef, uniformRef) => string = "uniformBlockBinding"
