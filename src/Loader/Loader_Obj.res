@@ -121,7 +121,17 @@ let fromString = content => {
   )
 }
 
+exception FetchError(string)
+
+let fetchOkay = x =>
+  Fetch.Response.ok(x)
+    ? Js.Promise.resolve(x)
+    : Js.Promise.reject(FetchError(Fetch.Response.url(x) ++ " could not be loaded"))
+
 let load = url => {
   open Js.Promise
-  Fetch.fetch(url) |> then_(x => x->Fetch.Response.text) |> then_(x => x->fromString->resolve)
+  Fetch.fetch(url)
+  |> then_(fetchOkay)
+  |> then_(Fetch.Response.text)
+  |> then_(x => x->fromString->resolve)
 }

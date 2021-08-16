@@ -1,7 +1,5 @@
 // Handling the core rendering and WebGL maangement
 
-open Belt
-
 type meshData = {
   positions: WebGL.buffer,
   normals: WebGL.buffer,
@@ -9,16 +7,9 @@ type meshData = {
   length: int,
 }
 
-@ocaml.doc("Update the size of the canvas to match its DOM element")
-let resizeCanvas = canvas => {
-  Browser.getClientWidth(canvas)->Browser.setWidth(canvas, _)
-  Browser.getClientHeight(canvas)->Browser.setHeight(canvas, _)
-}
+type frameRenderer<'a> = ('a => unit, 'a => unit)
 
-let makeContext = canvas => {
-  resizeCanvas(canvas)
-  WebGL.getContext(canvas, "webgl2")
-}
+type objectRenderer<'a, 'b> = ('a => unit, 'a => unit, ('a, 'b) => unit)
 
 /*
 single pixel texture
@@ -44,37 +35,11 @@ single pixel texture
 
 */
 
-type cameraInput = {
-  mesh: WebGL.buffer,
-  meshLength: int,
-  transform: array<float>,
-}
-
-@ocaml.doc("Build a renderer, initialising value references & returning a render function")
-let makeRenderer = (context, program, ~uniforms, ~attributes, ~render) => {
-  Js.log("makeRenderer")
-  let handlers = Array.concat(
-    Array.map(uniforms, ((name, handler)) => {
-      let ref = WebGL.getUniformLocation(context, program, name)
-      if ref == -1 {
-        failwith(`Cannot find GLSL uniform ${name}`)
-      }
-      handler(context, ref)
-    }),
-    Array.map(attributes, ((name, handler)) => {
-      let ref = WebGL.getAttribLocation(context, program, name)
-      if ref == -1 {
-        failwith(`Cannot find GLSL attribute ${name}`)
-      }
-      handler(context, ref)
-    }),
-  )
-
-  (mesh: meshData, camera) => {
-    Array.forEach(handlers, handler => handler(mesh, camera))
-    render(context, mesh, camera)
-  }
-}
+// type cameraInput = {
+//   mesh: WebGL.buffer,
+//   meshLength: int,
+//   transform: array<float>,
+// }
 
 type animData = {
   mutable lastLog: float,

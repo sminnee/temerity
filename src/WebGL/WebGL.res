@@ -334,6 +334,14 @@ external bufferData: (
 ) => unit = "bufferData"
 
 @send
+external bufferDataInt: (
+  t,
+  @int [@as(34962) #ArrayBuffer | #ElementArrayBuffer],
+  int,
+  @int [@as(35044) #StaticDraw | @as(35048) #DynamicDraw | @as(35040) #StreamDraw],
+) => unit = "bufferData"
+
+@send
 external bufferSubData: (
   t,
   @int [@as(34962) #ArrayBuffer | #ElementArrayBuffer],
@@ -481,7 +489,8 @@ external getShaderPrecisionFormat: (
 
 @send external getActiveUniform: (t, program, uniformRef) => activeInfo = "getActiveUniform"
 
-@send external getAttribLocation: (t, program, string) => attribRef = "getAttribLocation"
+@send @return(nullable)
+external getAttribLocation: (t, program, string) => option<attribRef> = "getAttribLocation"
 
 @send external getUniformBool: (t, program, uniformRef) => bool = "getUniform"
 
@@ -493,7 +502,8 @@ external getShaderPrecisionFormat: (
 
 @send external getUniformIntVec: (t, program, uniformRef) => array<int> = "getUniform"
 
-@send external getUniformLocation: (t, program, string) => uniformRef = "getUniformLocation"
+@send @return(nullable)
+external getUniformLocation: (t, program, string) => option<uniformRef> = "getUniformLocation"
 
 // getVertexAttrib
 

@@ -72,6 +72,23 @@ let option_fromResult = res =>
   | Result.Error(_) => None
   }
 
+@ocaml.doc("Combine 2 options into a tuple if all values are Some")
+let option_combine2 = (a, b) =>
+  switch (a, b) {
+  | (Some(val1), Some(val2)) => Some((val1, val2))
+  | _ => None
+  }
+
+@ocaml.doc("Combine 3 options into a tuple if all values are Some")
+let option_combine3 = (a, b, c) =>
+  switch (a, b, c) {
+  | (Some(val1), Some(val2), Some(val3)) => Some((val1, val2, val3))
+  | _ => None
+  }
+
+@ocaml.doc("Execute the given fn if the option is some, otherwise return unit")
+let option_if = (opt, fn) => Option.mapWithDefault(opt, (), fn)
+
 // Operations on Maps
 
 @ocaml.doc("Remove None options in a map containing options")
@@ -287,10 +304,11 @@ let result_alterMessage = (result, updater) =>
   | Result.Error(messages) => Result.Error(Array.map(messages, updater))
   }
 
-let result_log = (result, fn) => switch result {
-| Result.Ok(x) => fn(x)
-| Result.Error(msg) => Js.log2("Error", msg)
-}
+let result_log = result =>
+  switch result {
+  | Result.Ok(_) => ()
+  | Result.Error(errors) => Array.forEach(errors, Js.log2("Error", _))
+  }
 
 // Operations on int
 
@@ -307,3 +325,42 @@ let logTime = (label, operation: unit => 'a): 'a => {
   Js.log4("Execution time", label, (t2 -. t1) /. 1000., "seconds")
   result
 }
+
+// Other
+
+@ocaml.doc("HOF to tell a mapper to return its input as the first element of a tuple")
+let keepInput = (fn, x) => (x, fn(x))
+
+@ocaml.doc("HOF to tell a mapper to return its input as the first element of a tuple")
+let keepInput2 = (fn, (x, y)) => (x, y, fn((x, y)))
+
+@ocaml.doc("HOF to tell a mapper to return its input as the first element of a tuple")
+let result_keepInput = (fn, x) =>
+  switch fn(x) {
+  | Result.Ok(val) => Result.Ok((x, val))
+  | Result.Error(err) => Result.Error(err)
+  }
+
+@ocaml.doc("HOF to tell a mapper to return its input as the first element of a tuple")
+let result_keepInput2 = (fn, (x, y)) =>
+  switch fn((x, y)) {
+  | Result.Ok(val) => Result.Ok((x, y, val))
+  | Result.Error(err) => Result.Error(err)
+  }
+
+@ocaml.doc("HOF to tell a mapper to return its input as the first element of a tuple")
+let result_keepInput3 = (fn, (x, y, z)) =>
+  switch fn((x, y, z)) {
+  | Result.Ok(val) => Result.Ok((x, y, z, val))
+  | Result.Error(err) => Result.Error(err)
+  }
+
+@get external promiseError: Js.Promise.error => string = "_1"
+
+@ocaml.doc("Capture the promise's success/failure into a result object")
+let result_fromPromise = promise =>
+  promise
+  |> Js.Promise.then_(x => Js.Promise.resolve(Result.Ok(x)))
+  |> Js.Promise.catch(err => Js.Promise.resolve(Result.Error([promiseError(err)])))
+
+

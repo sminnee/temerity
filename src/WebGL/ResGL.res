@@ -1,14 +1,37 @@
 // Mid-level API on top of WebGL, designed for ReScript
 
 open Belt
+open Util
+
+module Canvas = {
+  @ocaml.doc("Update the size of the canvas to match its DOM element")
+  let resize = canvas => {
+    Browser.getClientWidth(canvas)->Browser.setWidth(canvas, _)
+    Browser.getClientHeight(canvas)->Browser.setHeight(canvas, _)
+  }
+}
+
+module Context = {
+  let fromCanvas = canvas => {
+    Canvas.resize(canvas)
+    WebGL.getContext(canvas, "webgl2")->result_fromOption(["Can't create a WebGL2 context"])
+  }
+}
 
 @ocaml.doc("Represents arrays of float data loaded into the GPU")
 module Buffer = {
   @ocaml.doc("Load an array into a WebGL array buffer")
-  let fromArray = (context: WebGL.t, ~purpose=#StaticDraw, data) =>
+  let fromArray = (context: WebGL.t, ~usage=#StaticDraw, data) =>
     WebGL.createBuffer(context)->Option.map(id => {
       WebGL.bindBuffer(context, #ArrayBuffer, id)
-      WebGL.bufferData(context, #ArrayBuffer, data, purpose)
+      WebGL.bufferData(context, #ArrayBuffer, data, usage)
+      id
+    })
+
+  let make = (context, ~usage=#StaticDraw, length) =>
+    WebGL.createBuffer(context)->Option.map(id => {
+      WebGL.bindBuffer(context, #ArrayBuffer, id)
+      WebGL.bufferDataInt(context, #ArrayBuffer, length, usage)
       id
     })
 }
@@ -16,10 +39,10 @@ module Buffer = {
 @ocaml.doc("Represents arrays of index load data loaded into the GPU")
 module ElementBuffer = {
   @ocaml.doc("Load an array into a WebGL array buffer")
-  let fromArray = (context: WebGL.t, ~purpose=#StaticDraw, data) =>
+  let fromArray = (context: WebGL.t, ~usage=#StaticDraw, data) =>
     WebGL.createBuffer(context)->Option.map(id => {
       WebGL.bindBuffer(context, #ElementArrayBuffer, id)
-      WebGL.bufferData(context, #ArrayBuffer, data, purpose)
+      WebGL.bufferData(context, #ArrayBuffer, data, usage)
       id
     })
 }
@@ -42,45 +65,44 @@ module Shader = {
   @ocaml.doc("Load a shader")
   let fromString = (context, shaderType, src) =>
     WebGL.createShader(context, shaderType)
-    ->Util.result_fromOption("Can't create shader")
+    ->Util.result_fromOption(["Can't create shader"])
     ->Result.flatMap(shader => {
       WebGL.shaderSource(context, shader, src)
       WebGL.compileShader(context, shader)
       if WebGL.getShaderParameterBool(context, shader, #CompileStatus) {
         Result.Ok(shader)
       } else {
-        Result.Error("Shader compile error: " ++ WebGL.getShaderInfoLog(context, shader))
+        Result.Error(["Shader compile error: " ++ WebGL.getShaderInfoLog(context, shader)])
       }
     })
 }
 
 @ocaml.doc("Represents a complete GPU program linked from a texture and a fragment shader")
 module Program = {
-  @ocaml.doc("Create a program from a pair of compiled shaders")
-  let fromShaderPair = (context, vertexShader, fragmentShader) => {
+  @ocaml.doc("Create a program from an array of compiled shaders")
+  let fromShaders = (context, shaders) => {
     WebGL.createProgram(context)
-    ->Util.result_fromOption("Can't create program")
+    ->Util.result_fromOption(["Can't create program"])
     ->Result.flatMap(program => {
-      WebGL.attachShader(context, program, vertexShader)
-      WebGL.attachShader(context, program, fragmentShader)
+      Array.forEach(shaders, WebGL.attachShader(context, program, _))
       WebGL.linkProgram(context, program)
       if WebGL.getProgramParameterBool(context, program, #LinkStatus) {
         Result.Ok(program)
       } else {
-        Result.Error("Program link error: " ++ WebGL.getProgramInfoLog(context, program))
+        Result.Error(["Program link error: " ++ WebGL.getProgramInfoLog(context, program)])
       }
     })
   }
 
+  @ocaml.doc("Create a program from a single compiled shaders")
+  let fromShader = (context, shader) => fromShaders(context, [shader])
+
   @ocaml.doc("Create a program from a pair of shader source strings")
   let fromStringPair = (context, vertexSrc, fragmentSrc) => {
-    switch (
+    result_combine2(
       Shader.fromString(context, #VertexShader, vertexSrc),
       Shader.fromString(context, #FragmentShader, fragmentSrc),
-    ) {
-    | (Result.Ok(vertex), Result.Ok(fragment)) => fromShaderPair(context, vertex, fragment)
-    | (Result.Error(msg), _) | (_, Result.Error(msg)) => Result.Error(msg)
-    }
+    )->Result.flatMap(((vertex, fragment)) => fromShaders(context, [vertex, fragment]))
   }
 
   @ocaml.doc("Enable the given program for use")
@@ -90,6 +112,16 @@ module Program = {
 @ocaml.doc("Load uniform values into the shader")
 module Uniform = {
   let ref = WebGL.getUniformLocation
+
+  @ocaml.doc(
+    "Returns an 'apply' function that will call its argument passing the ref, if it exists"
+  )
+  let applyRef = (context, program, name) => {
+    switch ref(context, program, name) {
+    | Some(ref) => fn => fn(ref)
+    | None => _ => ()
+    }
+  }
 
   let bind1f = WebGL.uniform1f
   let bind2f = WebGL.uniform2f
@@ -113,6 +145,16 @@ module Uniform = {
 module Attribute = {
   let ref = WebGL.getAttribLocation
 
+  @ocaml.doc(
+    "Returns an 'apply' function that will call its argument passing the ref, if it exists"
+  )
+  let applyRef = (context, program, name) => {
+    switch ref(context, program, name) {
+    | Some(ref) => fn => fn(ref)
+    | None => _ => ()
+    }
+  }
+
   let bind1f = WebGL.vertexAttrib1f
   let bind2f = WebGL.vertexAttrib2f
   let bind3f = WebGL.vertexAttrib3f
@@ -126,17 +168,14 @@ module Attribute = {
     WebGL.vertexAttribPointer(context, ref, itemLength, #Float, false, 0, 0)
   }
 
-  @ocaml.doc("Bind the content of a buffer to an attribute for a render operation")
+  @ocaml.doc("bindBuffer() with a buffer item per-instance, rather than per-vertex")
   let bindBufferPerInstance = (context, ref, itemLength, buffer) => {
-    // Activate the model's vertex Buffer Object
-    WebGL.enableVertexAttribArray(context, ref)
-    WebGL.bindBuffer(context, #ArrayBuffer, buffer)
-    WebGL.vertexAttribPointer(context, ref, itemLength, #Float, false, 0, 0)
+    bindBuffer(context, ref, itemLength, buffer)
     WebGL.vertexAttribDivisor(context, ref, 1)
   }
 
-  @ocaml.doc("Bind the content of a buffer to an attribute for a render operation")
-  let bindMatrixBufferPerInstance = (context, ref, buffer) => {
+  @ocaml.doc("Bind the content of a buffer to a matrix attribute for a render operation")
+  let bindMatrixBuffer = (context, ref, buffer) => {
     // Activate the model's vertex Buffer Object
     WebGL.enableVertexAttribArray(context, ref)
     WebGL.enableVertexAttribArray(context, ref + 1)
@@ -149,7 +188,11 @@ module Attribute = {
     WebGL.vertexAttribPointer(context, ref + 1, 4, #Float, false, 16 * 4, 4 * 4)
     WebGL.vertexAttribPointer(context, ref + 2, 4, #Float, false, 16 * 4, 8 * 4)
     WebGL.vertexAttribPointer(context, ref + 3, 4, #Float, false, 16 * 4, 12 * 4)
+  }
 
+  @ocaml.doc("bindMatrixBuffer() with a buffer item per-instance, rather than per-vertex")
+  let bindMatrixBufferPerInstance = (context, ref, buffer) => {
+    bindMatrixBuffer(context, ref, buffer)
     WebGL.vertexAttribDivisor(context, ref, 1)
     WebGL.vertexAttribDivisor(context, ref + 1, 1)
     WebGL.vertexAttribDivisor(context, ref + 2, 1)
