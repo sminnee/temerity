@@ -7,10 +7,11 @@ on:
       - .gitignore
       - README.md
       - LICENSE.md
-      
+
 jobs:
   build:
     name: Deploy to K8S tangerine1
+    environment: prod
     runs-on: ubuntu-latest
     steps:
     - name: Checkout main
