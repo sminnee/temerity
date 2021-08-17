@@ -13,7 +13,6 @@
   "suffix": ".mjs",
   "bs-dependencies": [
     "bs-fetch",
-    "bs-webapi"
   ],
   "bs-dev-dependencies": [
   ],
