@@ -17,7 +17,8 @@ let fromTuple = ((x, y, z)) => {x: x, y: y, z: z}
 let zero = make(0., 0., 0.)
 let unitX = make(1., 0., 0.)
 let unitY = make(0., 1., 0.)
-let unitZ = make(1., 0., 1.)
+let unitZ = make(0., 0., 1.)
+let unit = make(1., 1., 1.)
 
 @ocaml.doc("Sum or 2 vectors")
 let add = (a, b) => make(a.x +. b.x, a.y +. b.y, a.z +. b.z)

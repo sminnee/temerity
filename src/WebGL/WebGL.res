@@ -341,7 +341,6 @@ external bufferDataBuffer: (
   @int [@as(35044) #StaticDraw | @as(35048) #DynamicDraw | @as(35040) #StreamDraw],
 ) => unit = "bufferData"
 
-
 @send
 external bufferDataInt: (
   t,

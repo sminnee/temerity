@@ -1,33 +1,74 @@
 // Matrices representing transformation operations
 
+let set = Js.Array.unsafe_set
+
+@inline @ocaml.doc("Load all values into an existing matrix")
+let load = (
+  dst,
+  e00,
+  e01,
+  e02,
+  e03,
+  e10,
+  e11,
+  e12,
+  e13,
+  e20,
+  e21,
+  e22,
+  e23,
+  e30,
+  e31,
+  e32,
+  e33,
+) => {
+  set(dst, 0, e00)
+  set(dst, 1, e01)
+  set(dst, 2, e02)
+  set(dst, 3, e03)
+  set(dst, 4, e10)
+  set(dst, 5, e11)
+  set(dst, 6, e12)
+  set(dst, 7, e13)
+  set(dst, 8, e20)
+  set(dst, 9, e21)
+  set(dst, 10, e22)
+  set(dst, 11, e23)
+  set(dst, 12, e30)
+  set(dst, 13, e31)
+  set(dst, 14, e32)
+  set(dst, 15, e33)
+  dst
+}
+
 // Mutable forms
 
 let translateInto = (dest, x, y, z) =>
-  Matrix4.load(dest, 1., 0., 0., 0., 0., 1., 0., 0., 0., 0., 1., 0., x, y, z, 1.)
+  load(dest, 1., 0., 0., 0., 0., 1., 0., 0., 0., 0., 1., 0., x, y, z, 1.)
 
 let scaleInto = (dest, x, y, z) =>
-  Matrix4.load(dest, x, 0., 0., 0., 0., y, 0., 0., 0., 0., z, 0., 0., 0., 0., 1.)
+  load(dest, x, 0., 0., 0., 0., y, 0., 0., 0., 0., z, 0., 0., 0., 0., 1.)
 
 let rotateXInto = (dest, angle) => {
   let radians = Matrix4.toRadians(angle)
   let s = Js.Math.sin(radians)
   let c = Js.Math.cos(radians)
 
-  Matrix4.load(dest, 1., 0., 0., 0., 0., c, s, 0., 0., -.s, c, 0., 0., 0., 0., 1.)
+  load(dest, 1., 0., 0., 0., 0., c, s, 0., 0., -.s, c, 0., 0., 0., 0., 1.)
 }
 
 let rotateYInto = (dest, angle) => {
   let radians = Matrix4.toRadians(angle)
   let s = Js.Math.sin(radians)
   let c = Js.Math.cos(radians)
-  Matrix4.load(dest, c, 0., -.s, 0., 0., 1., 0., 0., s, 0., c, 0., 0., 0., 0., 1.)
+  load(dest, c, 0., -.s, 0., 0., 1., 0., 0., s, 0., c, 0., 0., 0., 0., 1.)
 }
 
 let rotateZInto = (dest, angle) => {
   let radians = Matrix4.toRadians(angle)
   let s = Js.Math.sin(radians)
   let c = Js.Math.cos(radians)
-  Matrix4.load(dest, c, s, 0., 0., -.s, c, 0., 0., 0., 0., 1., 0., 0., 0., 0., 1.)
+  load(dest, c, s, 0., 0., -.s, c, 0., 0., 0., 0., 1., 0., 0., 0., 0., 1.)
 }
 
 // Immutable forms

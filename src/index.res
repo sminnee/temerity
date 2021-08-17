@@ -1,5 +1,5 @@
 open Belt
-let numObjects = 23000
+let numObjects = 25000
 open Util
 
 %%raw(`
@@ -15,7 +15,6 @@ type renderData = {
   // mTransform: array<float>,
   vTransform: array<float>,
   pTransform: array<float>,
-  viewTransform: array<float>,
   mPositions: WebGL.buffer,
   lightPos: Vec3.t,
 }
@@ -37,28 +36,35 @@ let rendererFromProgram = (context, program) => {
   let withNormal = aRef("a_vtxNormal")
   let withTextureCoord = aRef("a_vtxTextureCoord")
 
-  // let withM = uRef("u_modelTransform")
   let withPos = aRef("a_modelPosition")
 
   (
     // Once
-    ({texture, mesh, pTransform, vTransform, mPositions}) => {
+    ({texture, mesh, pTransform, mPositions}) => {
       withSampler(Uniform.bindTexture2D(context, _, #Texture0, texture))
       withVertex(Attribute.bindBuffer(context, _, 3, mesh.positions))
       withNormal(Attribute.bindBuffer(context, _, 3, mesh.normals))
       withTextureCoord(Attribute.bindBuffer(context, _, 2, mesh.textureCoords))
       withP(Uniform.bindMatrix4(context, _, pTransform))
-      withV(Uniform.bindMatrix4(context, _, vTransform))
       withColor(Attribute.bind3f(context, _, 1., 0., 1.))
       withPos(Attribute.bindMatrixBufferPerInstance(context, _, mPositions))
     },
     // Once per frame
-    ({ mesh, lightPos}) => {
-      // withM(Uniform.bindMatrix4(context, _, mTransform))
+    ({mesh, vTransform, lightPos}) => {
       withLight(Uniform.bind3f(context, _, lightPos.x, lightPos.y, lightPos.z))
+      withV(Uniform.bindMatrix4(context, _, vTransform))
+
       WebGL.drawArraysInstanced(context, #Triangles, 0, mesh.length, numObjects)
     },
   )
+}
+
+type character = {
+  transform: Scene.Transform.t,
+  ref: array<float>,
+  ySpeed: float,
+  zSpeed: float,
+  mutable zInput: float,
 }
 
 let app = (context, object, textureImage) => {
@@ -67,21 +73,28 @@ let app = (context, object, textureImage) => {
 
   let randRange = (min, max) => Js.Math.random() *. (max -. min) +. min
 
-  // Make objects as a set of transform objects
-  let objects = Array.range(0, numObjects - 1)->Array.map(_ => {
-    let pos = Vec3.make(randRange(-100., 100.), 0., randRange(-200., 200.))
-    Scene.Transform.make(~scaleUniform=2., pos)
-  })
-
   // objects calculated into positionInput, loaded into the buffer
   let positionInput = Matrix4.Array.makeBuffer(numObjects)
 
-  let refs = Array.mapWithIndex(objects, (idx, _) => Matrix4.Array.ref(positionInput, idx))
+  // Make objects as a set of transform objects
+  let objects = Array.range(0, numObjects - 1)->Array.map(idx => {
+    let pos = Vec3.make(randRange(-200., 200.), randRange(-10., 10.), randRange(-400., 400.))
+    {
+      transform: Scene.Transform.make(~scaleUniform=2., ~rotY=randRange(0., 360.), pos),
+      ref: Matrix4.Array.ref(positionInput, idx),
+      ySpeed: randRange(0.5, 5.),
+      zSpeed: randRange(0.01, 0.03),
+      zInput: 0.,
+    }
+  })
 
   let updatePositions = (bufferId, objects) => {
-    Array.forEachWithIndex(objects, (idx, object) =>
-      refs[idx]->Option.map(Scene.Transform.load(_, object))->ignore
-    )
+    Array.forEach(objects, object => {
+      object.zInput = object.zInput +. object.zSpeed
+      Scene.Transform.alterRotZ(object.transform, (. _) => Js.Math.sin(object.zInput) *. 270.)
+      Scene.Transform.alterRotY(object.transform, (. rot) => rot +. object.ySpeed)
+      Scene.Transform.load(object.ref, object.transform)
+    })
     ResGL.Buffer.loadBuffer(context, bufferId, positionInput)
   }
 
@@ -105,7 +118,10 @@ let app = (context, object, textureImage) => {
     // Camera transformations
     let projection =
       Camera.perspectiveCamera(45., 1.33, 0.1, 1000.)->Option.getWithDefault(Matrix4.identity)
-    let view = Camera.lookAtTransform(Vec3.make(0., 25., -100.), Vec3.zero, Vec3.unitY)
+
+    let cameraBase = Vec3.make(0., 30., -950.)
+    let cameraTransform = Scene.Transform.make(Vec3.zero, ~rotY=0., ~scaleUniform=1.)
+    let cameraMatrix = Matrix4.empty()
 
     let ang = ref(0.)
     let ang2 = ref(0.)
@@ -118,28 +134,35 @@ let app = (context, object, textureImage) => {
     renderSetup({
       texture: texture,
       pTransform: projection,
-      vTransform: view,
-      // mTransform: rotBoth,
+      vTransform: Matrix4.default,
       mPositions: positionBuffer,
-      viewTransform: view,
       lightPos: vmLight,
       mesh: loadedMesh,
     })
 
+    updatePositions(positionBuffer, objects)
+
     animate(_ => {
-      // Animate
+      // Animate camera
+      ang := ang.contents +. 0.1
       ang2 := ang2.contents +. 0.005
+
+      Scene.Transform.alterRotY(cameraTransform, (. _) => ang.contents)
+      let scale = (Js.Math.sin(ang2.contents) +. 2.) /. 3.
+      Scene.Transform.alterScaleX(cameraTransform, (. _) => scale)
+      Scene.Transform.alterScaleY(cameraTransform, (. _) => scale)
+      Scene.Transform.alterScaleZ(cameraTransform, (. _) => scale)
+
+      Scene.Transform.load(cameraMatrix, cameraTransform)
+
+      let cameraLoc = Matrix4.mulVec3(cameraMatrix, cameraBase)
+
+      let view = Camera.lookAtTransform(cameraLoc, Vec3.zero, Vec3.unitY)
 
       // Light rotation
       Transform.rotateZInto(lightTransform, ang.contents /. 2.)->ignore
       Matrix4.mulVec3Into(vmLight, lightTransform, light)->ignore
       Matrix4.mulVec3Into(vmLight, view, vmLight)->ignore
-
-
-      Array.forEach(objects, object => {
-        object.rotY = Some(Option.mapWithDefault(object.rotY, 0., x => x +. Js.Math.random()*.5.))
-        //object.rotZ = Some(Js.Math.sin(ang2.contents) *. 270.)
-      })
 
       updatePositions(positionBuffer, objects)
 
@@ -147,9 +170,7 @@ let app = (context, object, textureImage) => {
         texture: texture,
         pTransform: projection,
         vTransform: view,
-        // mTransform: rotBoth,
         mPositions: positionBuffer,
-        viewTransform: view,
         lightPos: vmLight,
         mesh: loadedMesh,
       }
