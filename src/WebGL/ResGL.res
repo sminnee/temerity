@@ -12,10 +12,17 @@ module Canvas = {
 }
 
 module Context = {
+  @ocaml.doc("Create a WebGL conent for the given DOM element")
   let fromCanvas = canvas => {
     Canvas.resize(canvas)
     WebGL.getContext(canvas, "webgl2")->result_fromOption(["Can't create a WebGL2 context"])
   }
+
+  @ocaml.doc("Create a WebGL conent for the given DOM ID")
+  let fromElementId = id =>
+    Browser.getElementById(id)
+    ->result_fromOption(["Can't find DO element #canvas"])
+    ->Result.flatMap(fromCanvas)
 }
 
 @ocaml.doc("Represents arrays of float data loaded into the GPU")
@@ -34,6 +41,11 @@ module Buffer = {
       WebGL.bufferDataInt(context, #ArrayBuffer, length, usage)
       id
     })
+
+  let loadBuffer = (context: WebGL.t, ~usage=#StaticDraw, id, data) => {
+    WebGL.bindBuffer(context, #ArrayBuffer, id)
+    WebGL.bufferDataBuffer(context, #ArrayBuffer, data, usage)
+  }
 }
 
 @ocaml.doc("Represents arrays of index load data loaded into the GPU")

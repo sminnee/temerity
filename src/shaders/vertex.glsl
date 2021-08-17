@@ -5,7 +5,7 @@ precision mediump float;
 // Scene transformations
 uniform mat4 u_cameraProjection; // Projection, view, model transform
 uniform mat4 u_cameraView;  // View, model transform
-uniform mat4 u_modelTransform;  // Transformation common to all instances
+// uniform mat4 u_modelTransform;  // Transformation common to all instances
 
 // Light model
 uniform vec3 u_lightPosition;
@@ -29,7 +29,7 @@ void main() {
   mat4 vm;
   mat4 pvm;
 
-  vm = u_cameraView * a_modelPosition * u_modelTransform;
+  vm = u_cameraView * a_modelPosition;
   pvm = u_cameraProjection * vm;
 
   // Perform the model and view transformations on the vertex and pass this

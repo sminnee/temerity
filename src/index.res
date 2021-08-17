@@ -12,7 +12,7 @@ let vertexShaderSrc = %raw(`_vertexShaderSrc`)
 type renderData = {
   texture: WebGL.texture,
   mesh: Renderer.meshData,
-  mTransform: array<float>,
+  // mTransform: array<float>,
   vTransform: array<float>,
   pTransform: array<float>,
   viewTransform: array<float>,
@@ -37,7 +37,7 @@ let rendererFromProgram = (context, program) => {
   let withNormal = aRef("a_vtxNormal")
   let withTextureCoord = aRef("a_vtxTextureCoord")
 
-  let withM = uRef("u_modelTransform")
+  // let withM = uRef("u_modelTransform")
   let withPos = aRef("a_modelPosition")
 
   (
@@ -53,39 +53,46 @@ let rendererFromProgram = (context, program) => {
       withPos(Attribute.bindMatrixBufferPerInstance(context, _, mPositions))
     },
     // Once per frame
-    ({mTransform, mesh, lightPos}) => {
-      withM(Uniform.bindMatrix4(context, _, mTransform))
+    ({ mesh, lightPos}) => {
+      // withM(Uniform.bindMatrix4(context, _, mTransform))
       withLight(Uniform.bind3f(context, _, lightPos.x, lightPos.y, lightPos.z))
       WebGL.drawArraysInstanced(context, #Triangles, 0, mesh.length, numObjects)
     },
   )
 }
 
-let app = (context, mesh, textureImage) => {
+let app = (context, object, textureImage) => {
   open Renderer
   open ResGL
 
-  // Create a buffer with matrix positions for all objects
-  let bufferPositions = () => {
-    let randRange = (min, max) => Js.Math.random() *. (max -. min) +. min
+  let randRange = (min, max) => Js.Math.random() *. (max -. min) +. min
 
-    let modelTransform = Matrix4.empty()
-    let buffer = Mesh.FloatBuffer.make(numObjects * 16)
+  // Make objects as a set of transform objects
+  let objects = Array.range(0, numObjects - 1)->Array.map(_ => {
+    let pos = Vec3.make(randRange(-100., 100.), 0., randRange(-200., 200.))
+    Scene.Transform.make(~scaleUniform=2., pos)
+  })
 
-    Array.range(0, numObjects)->Array.forEach(_ => {
-      let pos = Vec3.make(randRange(-100., 100.), 0., randRange(-200., 200.))
-      Transform.translateInto(modelTransform, pos.x, pos.y, pos.z)->ignore
-      Mesh.FloatBuffer.addMatrix4(buffer, modelTransform)
-    })
-    ResGL.Buffer.fromArray(context, buffer.data)->result_fromOption(["Couldn't make buffers"])
+  // objects calculated into positionInput, loaded into the buffer
+  let positionInput = Matrix4.Array.makeBuffer(numObjects)
+
+  let refs = Array.mapWithIndex(objects, (idx, _) => Matrix4.Array.ref(positionInput, idx))
+
+  let updatePositions = (bufferId, objects) => {
+    Array.forEachWithIndex(objects, (idx, object) =>
+      refs[idx]->Option.map(Scene.Transform.load(_, object))->ignore
+    )
+    ResGL.Buffer.loadBuffer(context, bufferId, positionInput)
   }
 
   // Process all possibly-failing actions up-front
   result_combine3(
     Program.fromStringPair(context, vertexShaderSrc, fragmentShaderSrc),
-    Scene.loadMesh(context, mesh)->result_fromOption(["Can't load mesh"]),
-    bufferPositions(),
-  )->Result.map(((program, loadedMesh, positions)) => {
+    Mesh.fromObject(object)->Scene.loadMesh(context, _)->result_fromOption(["Can't load mesh"]),
+    ResGL.Buffer.make(context, ~usage=#DynamicDraw, numObjects * 16)->result_fromOption([
+      "Couldn't make buffers",
+    ]),
+  )->Result.map(((program, loadedMesh, positionBuffer)) => {
     let (renderSetup, renderFrame) = rendererFromProgram(context, program)
 
     ResGL.Program.use(context, program)
@@ -103,11 +110,6 @@ let app = (context, mesh, textureImage) => {
     let ang = ref(0.)
     let ang2 = ref(0.)
 
-    let rotY = Matrix4.empty()
-    let rotZ = Matrix4.empty()
-    let rotBoth = Matrix4.empty()
-    let modelScale = Transform.scale(2., 2., 2.)
-
     let light = Vec3.make(0., 50., 0.)
     let lightTransform = Matrix4.empty()
 
@@ -117,8 +119,8 @@ let app = (context, mesh, textureImage) => {
       texture: texture,
       pTransform: projection,
       vTransform: view,
-      mTransform: rotBoth,
-      mPositions: positions,
+      // mTransform: rotBoth,
+      mPositions: positionBuffer,
       viewTransform: view,
       lightPos: vmLight,
       mesh: loadedMesh,
@@ -126,7 +128,6 @@ let app = (context, mesh, textureImage) => {
 
     animate(_ => {
       // Animate
-      ang := ang.contents +. 1.
       ang2 := ang2.contents +. 0.005
 
       // Light rotation
@@ -134,17 +135,20 @@ let app = (context, mesh, textureImage) => {
       Matrix4.mulVec3Into(vmLight, lightTransform, light)->ignore
       Matrix4.mulVec3Into(vmLight, view, vmLight)->ignore
 
-      // Combined rotation
-      Transform.rotateZInto(rotZ, Js.Math.sin(ang2.contents) *. 270.)->ignore
-      Transform.rotateYInto(rotY, ang.contents)->ignore
-      Matrix4.mul3Into(rotBoth, modelScale, rotZ, rotY)->ignore
+
+      Array.forEach(objects, object => {
+        object.rotY = Some(Option.mapWithDefault(object.rotY, 0., x => x +. Js.Math.random()*.5.))
+        //object.rotZ = Some(Js.Math.sin(ang2.contents) *. 270.)
+      })
+
+      updatePositions(positionBuffer, objects)
 
       let renderData = {
         texture: texture,
         pTransform: projection,
         vTransform: view,
-        mTransform: rotBoth,
-        mPositions: positions,
+        // mTransform: rotBoth,
+        mPositions: positionBuffer,
         viewTransform: view,
         lightPos: vmLight,
         mesh: loadedMesh,
@@ -163,13 +167,8 @@ Js.Promise.all2((
 |> result_fromPromise
 // Start app when they are all loaded
 |> Js.Promise.then_(result => {
-  Result.flatMap(result, ((obj: Loader_Obj.t, textureImage)) => {
-
-    Browser.getElementById("canvas")
-    ->result_fromOption(["Can't find DO element #canvas"])
-    ->Result.flatMap(ResGL.Context.fromCanvas)
-    ->Result.flatMap(app(_, Mesh.fromObject(obj), textureImage))
-
+  Result.flatMap(result, ((obj, textureImage)) => {
+    ResGL.Context.fromElementId("canvas")->Result.flatMap(app(_, obj, textureImage))
   })->result_log
   Js.Promise.resolve()
 })

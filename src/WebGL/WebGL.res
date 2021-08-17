@@ -334,6 +334,15 @@ external bufferData: (
 ) => unit = "bufferData"
 
 @send
+external bufferDataBuffer: (
+  t,
+  @int [@as(34962) #ArrayBuffer | #ElementArrayBuffer],
+  Js.TypedArray2.ArrayBuffer.t,
+  @int [@as(35044) #StaticDraw | @as(35048) #DynamicDraw | @as(35040) #StreamDraw],
+) => unit = "bufferData"
+
+
+@send
 external bufferDataInt: (
   t,
   @int [@as(34962) #ArrayBuffer | #ElementArrayBuffer],

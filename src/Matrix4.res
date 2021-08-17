@@ -1,7 +1,11 @@
 type t = array<float>
 
+@new external makeArrayBuffer: int => Js.TypedArray2.ArrayBuffer.t = "ArrayBuffer"
 @new external makeFloatArray: int => array<float> = "Float32Array"
 @new external bufferFromArray: array<float> => array<float> = "Float32Array"
+
+@new external makeSubArray: (Js.TypedArray2.ArrayBuffer.t, int, int) => array<float> = "Float32Array"
+@new external arrayFromBuffer: Js.TypedArray2.ArrayBuffer.t => array<float> = "Float32Array"
 
 let set = Js.Array.unsafe_set
 let get = Js.Array.unsafe_get
@@ -162,10 +166,25 @@ let toDegrees = angleInRadians => angleInRadians *. 57.29577951308232 // 180 / M
  * r = M * v (M is a 4x4 matrix, v is a 3-component vector)
  */
 let mulVec3Into = (dest, mat: t, vec: Vec3.t) =>
-  Vec3.load(dest,
+  Vec3.load(
+    dest,
     el00(mat) *. vec.x +. el10(mat) *. vec.y +. el20(mat) +. vec.z,
     el01(mat) *. vec.x +. el11(mat) *. vec.y +. el21(mat) +. vec.z,
     el02(mat) *. vec.x +. el12(mat) *. vec.y +. el22(mat) +. vec.z,
   )
 
 let mulVec3 = (mat, vec) => mulVec3Into(Vec3.empty(), mat, vec)
+
+module Array = {
+  open Js.TypedArray2
+
+  @ocaml.doc("Make an array of matrices")
+  let makeBuffer = num => ArrayBuffer.make(16 * 4 * num)
+  let fromBuffer = arrayFromBuffer
+
+  @ocaml.doc("Bind a reference to one matrix in the array of matrices")
+  let ref = (arr, idx) => {
+    makeSubArray(arr, idx * 16 * 4, 16)
+  }
+}
+

@@ -1,6 +1,9 @@
 type t = {mutable x: float, mutable y: float, mutable z: float}
 
 let make = (x, y, z) => {x: x, y: y, z: z}
+
+let makeUniform = val => {x: val, y: val, z: val}
+
 let load = (dest, x, y, z) => {
   dest.x = x
   dest.y = y
