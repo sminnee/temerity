@@ -1,4 +1,4 @@
-Hey, Fam!
+Temerity
 =========
 
-Experimental RPG-inspired chat application.
+Experimental 3D engine, written in ReScript, targeting WebGL2.
