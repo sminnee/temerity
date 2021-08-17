@@ -2,7 +2,7 @@
 
 # Runs a built image locally, for testing the container
 
-APP=heyfam-front
+APP=temerity-demo
 
 IMAGE=registry.sminn.ee/tangerine/$APP
 TAGPREFIX=""

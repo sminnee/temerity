@@ -2,7 +2,7 @@
 
 # Deploys a built docker image locally. Requires a tag
 
-APP=heyfam-front
+APP=temerity-demo
 
 IMAGE=registry.sminn.ee/tangerine/$APP
 TAGPREFIX=""
