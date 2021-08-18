@@ -3,7 +3,7 @@
 # Deploys a built docker image, by uploading it to the container registry and then nudging the deployment's tag ref
 # Requires that doctl registry and kubectl are both authenticated
 
-APP=heyfam-front
+APP=temerity-demo
 
 IMAGE=registry.sminn.ee/tangerine/$APP
 TAGPREFIX=""
