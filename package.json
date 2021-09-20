@@ -23,7 +23,7 @@
     "chai": "^4.3.4",
     "mocha": "^9.1.1",
     "pre-commit": "^1.2.2",
-    "snowpack": "^3.3.2",
+    "snowpack": "^3.8.8",
     "snowpack-plugin-glslify": "^1.0.0",
     "webpack": "^5.53.0"
   },
