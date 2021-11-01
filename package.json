@@ -25,7 +25,7 @@
     "pre-commit": "^1.2.2",
     "snowpack": "^3.8.8",
     "snowpack-plugin-glslify": "^1.0.0",
-    "webpack": "^5.53.0"
+    "webpack": "^5.61.0"
   },
   "dependencies": {
     "@rescript/react": "^0.10.2",
