@@ -21,7 +21,7 @@
     "@jihchi/plugin-rescript": "^1.0.0",
     "@snowpack/plugin-webpack": "^3.0.0",
     "chai": "^4.3.4",
-    "mocha": "^9.1.1",
+    "mocha": "^9.2.0",
     "pre-commit": "^1.2.2",
     "snowpack": "^3.8.8",
     "snowpack-plugin-glslify": "^1.0.0",
