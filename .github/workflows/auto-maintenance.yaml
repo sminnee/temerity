@@ -1,0 +1,50 @@
+name: Automatic Maintenance
+
+on:
+  # Allow manual triggers.
+  workflow_dispatch:
+
+  # Automatically run once a week.
+  schedule:
+    - cron: "0 7 * * SUN"
+
+jobs:
+  update-npm:
+    name: "Update NPM packages"
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          ref: main
+
+      - name: Use Node.js 20.x
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20.x
+
+      - name: Update packages
+        run: |
+          npm update
+
+      - name: Check if there are changes
+        id: changes
+        run: echo "changed=$(git status --porcelain | wc -l | xargs)" >> "$GITHUB_OUTPUT"
+        shell: bash
+
+      - name: Create a PR with the updates
+        if: steps.changes.outputs.changed > 0
+        id: create-pr
+        uses: peter-evans/create-pull-request@v5
+        with:
+          commit-message: Update NPM packages
+          branch: automated/update-packages
+          branch-suffix: timestamp
+          delete-branch: true
+          title: Update NPM packages
+          body: NPM lockfile updated
+          base: main
