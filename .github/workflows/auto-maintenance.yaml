@@ -43,7 +43,6 @@ jobs:
         with:
           commit-message: Update NPM packages
           branch: automated/update-packages
-          branch-suffix: timestamp
           delete-branch: true
           title: Update NPM packages
           body: NPM lockfile updated
