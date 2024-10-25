@@ -29,7 +29,7 @@ jobs:
 
       - name: Update packages
         run: |
-          npm update
+          npm update -S
 
       - name: Check if there are changes
         id: changes
@@ -39,7 +39,7 @@ jobs:
       - name: Create a PR with the updates
         if: steps.changes.outputs.changed > 0
         id: create-pr
-        uses: peter-evans/create-pull-request@v5
+        uses: peter-evans/create-pull-request@main
         with:
           commit-message: Update NPM packages
           branch: automated/update-packages
@@ -47,3 +47,4 @@ jobs:
           title: Update NPM packages
           body: NPM lockfile updated
           base: main
+          token: ${{ secrets.MAINTENANCE_GITHUB_TOKEN }}

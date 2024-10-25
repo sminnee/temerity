@@ -1,0 +1,38 @@
+on:
+  workflow_run:
+    workflows: [Test]
+    types: [completed]
+    branches: [main]
+
+jobs:
+  build:
+    name: Deploy to K8S tangerine1
+    environment: prod
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@master
+
+      - name: Use Node.js 16.x
+        uses: actions/setup-node@v1
+        with:
+          node-version: 16.x
+
+      - name: Cache node_modules
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/node_modules
+          key: ${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+
+      - name: Build
+        run: npm install && npm run build
+
+      - name: Build container image
+        run: bin/build $(echo $GITHUB_SHA | head -c7) .
+
+      - name: Push image to sminn.ee Container Registry and update Kubernetes deployment
+        run: bin/deploy $(echo $GITHUB_SHA | head -c7)
+        env:
+          DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+          LINODE_DEPLOY_KEY: ${{ secrets.LINODE_DEPLOY_KEY }}
