@@ -48,3 +48,4 @@ jobs:
           body: NPM lockfile updated
           base: main
           token: ${{ secrets.MAINTENANCE_GITHUB_TOKEN }}
+          assignees: sminnee
